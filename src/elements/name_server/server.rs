@@ -9,7 +9,6 @@ use std::{cell::RefCell, rc::Rc};
   - Standard methods for name servers to refresh local data from
     foreign name servers.
 */
-
 struct NameServer {
     id: u8, // identifier of NameServer
     peers: Vec<Rc<RefCell<NameServer>>>,

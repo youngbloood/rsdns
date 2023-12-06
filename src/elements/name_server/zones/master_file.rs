@@ -4,13 +4,17 @@ use std::{cell::RefCell, rc::Rc};
 
 pub trait MasterFileCoder {
     /// get the master files
-    fn calalog(&self) -> Vec<String>;
+    fn calalog(&mut self) -> Vec<String>;
 
     /// decode the master files to ResourceRecord
-    fn decode(&self, filename: &str) -> Result<Vec<ResourceRecord>, Error>;
+    fn decode(&mut self, filename: &str) -> Result<Vec<ResourceRecord>, Error>;
 
     /// encode the ResourceRecords in to master file
-    fn encode(&self, rrs: Vec<Rc<RefCell<ResourceRecord>>>, filename: &str) -> Result<(), Error>;
+    fn encode(
+        &mut self,
+        rrs: Vec<Rc<RefCell<ResourceRecord>>>,
+        filename: &str,
+    ) -> Result<(), Error>;
 }
 
 /**
@@ -25,15 +29,19 @@ impl DMF {
 }
 
 impl MasterFileCoder for DMF {
-    fn calalog(&self) -> Vec<String> {
+    fn calalog(&mut self) -> Vec<String> {
         todo!()
     }
 
-    fn decode(&self, filename: &str) -> Result<Vec<ResourceRecord>, Error> {
+    fn decode(&mut self, filename: &str) -> Result<Vec<ResourceRecord>, Error> {
         todo!()
     }
 
-    fn encode(&self, rrs: Vec<Rc<RefCell<ResourceRecord>>>, filename: &str) -> Result<(), Error> {
+    fn encode(
+        &mut self,
+        rrs: Vec<Rc<RefCell<ResourceRecord>>>,
+        filename: &str,
+    ) -> Result<(), Error> {
         todo!()
     }
 }

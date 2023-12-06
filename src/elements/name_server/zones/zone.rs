@@ -1,12 +1,8 @@
-use std::collections::HashMap;
-use std::vec;
-use std::{cell::RefCell, rc::Rc};
-
-use anyhow::{Error, Ok};
-
 use super::master_file::{MasterFileCoder, DMF};
 use super::DomainTree;
-use crate::dns::ResourceRecord;
+use anyhow::{Error, Ok};
+use std::collections::HashMap;
+use std::{cell::RefCell, rc::Rc};
 
 /**
 - The definition of zone boundaries.
@@ -18,7 +14,7 @@ use crate::dns::ResourceRecord;
 - Statements of the refresh policies desired.
 */
 
-struct Zones {
+pub struct Zones {
     domains: HashMap<String, Rc<RefCell<DomainTree>>>,
     coder: Box<dyn MasterFileCoder>,
 }

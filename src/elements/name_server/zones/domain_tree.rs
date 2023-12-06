@@ -99,9 +99,8 @@ XX.LCS.MIT.EDU.  All of the leaves are also domains.
 
 */
 
-use std::{cell::RefCell, rc::Rc};
-
 use crate::dns::ResourceRecord;
+use std::{cell::RefCell, rc::Rc};
 
 #[derive(Debug)]
 pub struct DomainTree {
