@@ -21,10 +21,16 @@ The header contains the following fields:
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 ```
  */
+
+#[derive(Debug)]
 pub struct Header([u8; 12]);
 
 impl Header {
-    pub fn new(raw: [u8; 12]) -> Self {
+    pub fn new() -> Self {
+        return Header([0; 12]);
+    }
+
+    pub fn from(raw: [u8; 12]) -> Self {
         return Header(raw);
     }
 
@@ -160,6 +166,8 @@ impl Header {
     is copied into the response.  If RD is set, it directs
     the name server to pursue the query recursively.
     Recursive query support is optional.
+
+    other ref: https://www.rfc-editor.org/rfc/rfc1034.html#section-4.3.1
     */
     pub fn rd(&self) -> u8 {
         return (self.0[2] & 0b1000_0000) >> 7;
@@ -176,6 +184,8 @@ impl Header {
     Recursion Available - this be is set or cleared in a
     response, and denotes whether recursive query support is
     available in the name server.
+
+    other ref: https://www.rfc-editor.org/rfc/rfc1034.html#section-4.3.1
     */
     pub fn ra(&self) -> u8 {
         return self.0[3] & 0b0000_0001;

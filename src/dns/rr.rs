@@ -26,6 +26,7 @@ use std::net::Ipv4Addr;
 ///     /                                               /
 ///     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 /// ```
+#[derive(Debug)]
 pub struct ResourceRecord {
     /// a domain name to which this resource record pertains.
     name: String,
@@ -70,9 +71,17 @@ impl ResourceRecord {
         }
     }
 
+    pub fn name(&self) -> &str {
+        return &self.name;
+    }
+
     pub fn with_name(&mut self, name: &str) -> &mut Self {
         self.name = name.to_string();
         return self;
+    }
+
+    pub fn typ(&self) -> u16 {
+        return self.typ;
     }
 
     pub fn with_type(&mut self, typ: u16) -> &mut Self {
@@ -80,15 +89,27 @@ impl ResourceRecord {
         return self;
     }
 
+    pub fn class(&self) -> u16 {
+        return self.class;
+    }
+
     pub fn with_class(&mut self, class: u16) -> &mut Self {
         self.class = class;
         return self;
+    }
+
+    pub fn ttl(&self) -> u32 {
+        return self.ttl;
     }
 
     pub fn with_ttl(&mut self, ttl: u32) -> &mut Self {
         self.ttl = ttl;
         return self;
     }
+
+    // pub fn rdata(&self) -> Ipv4Addr {
+    //     return Ipv4Addr::from(&self.rdata);
+    // }
 
     pub fn with_rdata(&mut self, ip: Ipv4Addr) -> &mut Self {
         self.rdata = ip.octets().to_vec();
@@ -118,6 +139,7 @@ impl ResourceRecord {
     }
 }
 
+#[derive(Debug)]
 pub struct RRs(Vec<ResourceRecord>);
 
 impl RRs {

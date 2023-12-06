@@ -1,4 +1,4 @@
-use super::labels::Labels;
+use super::{labels::Labels, Class, Type};
 use anyhow::Error;
 
 /**
@@ -41,17 +41,26 @@ pub struct Question {
     TYPE field, together with some more general codes which
     can match more than one type of RR.
     */
-    qtype: u16,
+    qtype: Type,
 
     /**
     a two octet code that specifies the class of the query.
     For example, the QCLASS field is IN for the Internet.
     */
-    qclass: u16,
+    qclass: Class,
 }
 
 impl Question {
-    pub fn new(raw: &[u8]) -> Result<Self, Error> {
+    pub fn new() -> Self {
+        Self {
+            length: 0,
+            qname: Labels::new(),
+            qtype: 0,
+            qclass: 0,
+        }
+    }
+
+    pub fn from(raw: &[u8]) -> Result<Self, Error> {
         let pkg_err = Err(Error::msg("the question package not incomplete"));
         if raw.len() == 0 {
             return pkg_err;
@@ -79,20 +88,28 @@ impl Question {
         return Ok(ques);
     }
 
-    pub fn qname(&self) -> &Labels {
-        return &self.qname;
+    pub fn qname(&mut self) -> &mut Labels {
+        return &mut self.qname;
     }
 
     pub fn length(&self) -> usize {
         return self.length;
     }
 
-    pub fn qtype(&self) -> u16 {
+    pub fn qtype(&self) -> Type {
         return self.qtype;
     }
 
-    pub fn qclass(&self) -> u16 {
+    pub fn with_qtype(&mut self, qtype: Type) {
+        return self.qtype = qtype;
+    }
+
+    pub fn qclass(&self) -> Class {
         return self.qclass;
+    }
+
+    pub fn with_qclass(&mut self, class: Class) {
+        return self.qclass = class;
     }
 
     pub fn encode(&self) -> Vec<u8> {
@@ -125,24 +142,24 @@ mod tests {
     use super::*;
 
     #[test]
-    pub fn test_question_new() {
+    pub fn test_question_from() {
         // correct
-        let mut ques = Question::new(&mut vec![
+        let mut ques = Question::from(&mut vec![
             // google com
             0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
             // type & qclass
             0x11, 0x22, 0x33, 0x44,
         ]);
         assert_eq!(true, ques.as_ref().is_ok());
-        assert_eq!(2, ques.as_ref().unwrap().qname().get_0().len());
+        assert_eq!(2, ques.as_mut().unwrap().qname().get_0().len());
         assert_eq!(16, ques.as_ref().unwrap().length());
         assert_eq!(
             "google",
-            ques.as_ref().unwrap().qname().get_0().get(0).unwrap()
+            ques.as_mut().unwrap().qname().get_0().get(0).unwrap()
         );
         assert_eq!(
             "com",
-            ques.as_ref().unwrap().qname().get_0().get(1).unwrap()
+            ques.as_mut().unwrap().qname().get_0().get(1).unwrap()
         );
 
         // incorrect
@@ -153,7 +170,7 @@ mod tests {
             0x11, 0x22, 0x33,
         ];
         while raw.len() != 0 {
-            ques = Question::new(&mut raw);
+            ques = Question::from(&mut raw);
             assert_eq!(true, ques.is_err());
             raw.pop();
         }

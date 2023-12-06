@@ -19,6 +19,8 @@ use super::rr::RRs;
 |      Additional     | RRs holding additional information
 ```
 */
+
+#[derive(Debug)]
 pub struct DNS {
     raw: Vec<u8>,
 
@@ -30,6 +32,16 @@ pub struct DNS {
 }
 
 impl DNS {
+    pub fn new() -> Self {
+        Self {
+            raw: vec![],
+            head: Header::new(),
+            ques: Question::new(),
+            answers: None,
+            authority: None,
+            additional: None,
+        }
+    }
     pub fn from(raw: &[u8]) -> Result<Self, Error> {
         let dns_packet_err = Err(Error::msg("the dns package not incomplete"));
         if raw.len() < 12 {
@@ -39,20 +51,24 @@ impl DNS {
         let mut dns = Self {
             raw: raw.to_vec(),
 
-            head: Header::new(raw[..12].try_into().expect("slice covert to array error")),
+            head: Header::from(raw[..12].try_into().expect("slice covert to array error")),
             ques: todo!(),
             answers: None,
             authority: None,
             additional: None,
         };
 
-        dns.ques = Question::new(&raw[12..])?;
+        dns.ques = Question::from(&raw[12..])?;
 
         return Ok(dns);
     }
 
-    pub fn head(&self) -> &Header {
-        return &self.head;
+    pub fn head(&mut self) -> &mut Header {
+        return &mut self.head;
+    }
+
+    pub fn ques(&mut self) -> &mut Question {
+        return &mut self.ques;
     }
 
     pub fn encode(&mut self) -> Vec<u8> {
@@ -72,8 +88,16 @@ impl DNS {
         }
         result.extend_from_slice(&self.head.get_0());
         result.extend_from_slice(&self.ques.encode());
-        result.extend_from_slice(&self.answers.as_ref().unwrap().encode());
 
+        if self.answers.is_some() {
+            result.extend_from_slice(&self.answers.as_ref().unwrap().encode());
+        }
+        if self.authority.is_some() {
+            result.extend_from_slice(&self.authority.as_ref().unwrap().encode());
+        }
+        if self.additional.is_some() {
+            result.extend_from_slice(&self.additional.as_ref().unwrap().encode());
+        }
         return result;
     }
 }
