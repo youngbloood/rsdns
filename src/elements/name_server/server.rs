@@ -1,4 +1,7 @@
-use super::zones::DomainTree;
+use super::{
+    zones::{zone::Zones, ZonesOperation, DZS},
+    NameServerOperation,
+};
 use crate::dns::ResourceRecord;
 use std::{cell::RefCell, rc::Rc};
 
@@ -9,37 +12,34 @@ use std::{cell::RefCell, rc::Rc};
   - Standard methods for name servers to refresh local data from
     foreign name servers.
 */
-struct NameServer {
-    id: u8, // identifier of NameServer
-    peers: Vec<Rc<RefCell<NameServer>>>,
-    zones: Vec<Rc<RefCell<DomainTree>>>,
+pub struct NameServer {
+    zones: Vec<Rc<RefCell<Zones>>>,
 }
 
 impl NameServer {
-    pub fn find(&self, domain: &str, r: bool) -> Option<Rc<RefCell<ResourceRecord>>> {
-        return self.find_cycle(domain, r, 0);
+    pub fn new() -> Self {
+        let mut ns = NameServer { zones: vec![] };
+        let zones = DZS::new().calalog_zones();
+        for zone in zones {
+            ns.zones.push(Rc::new(RefCell::new(zone)));
+        }
+        return ns;
     }
 
-    fn find_cycle(
-        &self,
-        domain: &str,
-        r: bool,
-        from_id: u8,
-    ) -> Option<Rc<RefCell<ResourceRecord>>> {
+    pub fn from(mut zoneser: Box<dyn ZonesOperation>) -> Self {
+        let mut ns = NameServer { zones: vec![] };
+        let zones = zoneser.calalog_zones();
+        for zone in zones {
+            ns.zones.push(Rc::new(RefCell::new(zone)));
+        }
+        return ns;
+    }
+}
+
+impl NameServerOperation for NameServer {
+    fn find(&mut self, domain: &str) -> Option<Rc<RefCell<ResourceRecord>>> {
         for zone in &self.zones {
             let rr = zone.borrow().get_rr(domain);
-            if rr.is_some() {
-                return rr;
-            }
-        }
-
-        // avoid the cycle invoke
-        if self.id == from_id {
-            return None;
-        }
-
-        for peer in &self.peers {
-            let rr = peer.borrow().find_cycle(domain, r, self.id);
             if rr.is_some() {
                 return rr;
             }

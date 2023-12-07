@@ -2,7 +2,13 @@ use crate::dns::ResourceRecord;
 use anyhow::Error;
 use std::{cell::RefCell, rc::Rc};
 
-pub trait MasterFileCoder {
+/**
+ * The Operation of Master Files
+ * calalog: list the Master Files
+ * decode: read the Master File and decode the content to ResourceRecords
+ * encode: encode vector ResourceRecords into a file
+ */
+pub trait MasterFileOperation {
     /// get the master files
     fn calalog(&mut self) -> Vec<String>;
 
@@ -20,17 +26,21 @@ pub trait MasterFileCoder {
 /**
  * Default Master Files
  */
-pub struct DMF;
+pub struct DMF {
+    mf: String,
+}
 
 impl DMF {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            mf: "master_file".to_string(),
+        }
     }
 }
 
-impl MasterFileCoder for DMF {
+impl MasterFileOperation for DMF {
     fn calalog(&mut self) -> Vec<String> {
-        todo!()
+        return vec![self.mf.to_string()];
     }
 
     fn decode(&mut self, filename: &str) -> Result<Vec<ResourceRecord>, Error> {

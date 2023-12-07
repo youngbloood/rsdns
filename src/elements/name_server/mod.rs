@@ -13,7 +13,28 @@
     automatically distributed to the name servers which provide
     redundant service for the data in a zone.
 
+   ```shell
+    +-------------------------------------------------+
+    |                  Name Server                    |
+    +------+------------------------------------+-----+     <- trait: ZonesOperation (get the zones list)
+    |  ... |                zone{n}             | ... |
+    +------+-----+-----------+------------+-----+-----+     <- trait: MasterFileOperation (decode dt from file, and encode dt to file)
+    |      | ... |   dt{n}   |   dt{n+1}  | ... |     |
+    |      |     |    |      |     |      |     |     |
+    |      |     |    V      |     V      |     |     |
+    |      |     |  file{n}  |  file{n+1} |     |     |
+    +------+-----+-----------+------------+-----+-----+
+    ```
+    dt is a shortening of domian_tree.
 */
+
+use std::{cell::RefCell, rc::Rc};
+
+use crate::dns::ResourceRecord;
 
 mod server;
 mod zones;
+
+pub trait NameServerOperation {
+    fn find(&mut self, domain: &str) -> Option<Rc<RefCell<ResourceRecord>>>;
+}
