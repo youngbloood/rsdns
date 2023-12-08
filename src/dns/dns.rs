@@ -3,6 +3,7 @@ use anyhow::Error;
 use super::header::Header;
 use super::question::Question;
 use super::rr::RRs;
+use super::ResourceRecord;
 
 /**
 # DNS Structure:
@@ -69,6 +70,13 @@ impl DNS {
 
     pub fn ques(&mut self) -> &mut Question {
         return &mut self.ques;
+    }
+
+    pub fn with_answer(&mut self, rr: ResourceRecord) {
+        if self.answers.is_none() {
+            self.answers = Some(RRs::new())
+        }
+        self.answers.as_mut().unwrap().extend(rr);
     }
 
     pub fn encode(&mut self) -> Vec<u8> {
