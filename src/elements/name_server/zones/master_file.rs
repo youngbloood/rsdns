@@ -1,4 +1,4 @@
-use crate::dns::ResourceRecord;
+use crate::dns::{Class, ResourceRecord};
 use anyhow::Error;
 use std::{cell::RefCell, rc::Rc};
 
@@ -13,13 +13,14 @@ pub trait MasterFileOperation {
     fn calalog(&mut self) -> Vec<String>;
 
     /// decode the master files to ResourceRecord
-    fn decode(&mut self, filename: &str) -> Result<Vec<ResourceRecord>, Error>;
+    fn decode(&mut self, filename: &str) -> Result<(Class, Vec<ResourceRecord>), Error>;
 
     /// encode the ResourceRecords in to master file
     fn encode(
         &mut self,
-        rrs: Vec<Rc<RefCell<ResourceRecord>>>,
         filename: &str,
+        rrs: Vec<Rc<RefCell<ResourceRecord>>>,
+        class: Class,
     ) -> Result<(), Error>;
 }
 
@@ -40,17 +41,18 @@ impl DMF {
 
 impl MasterFileOperation for DMF {
     fn calalog(&mut self) -> Vec<String> {
-        return vec![self.mf.to_string()];
+        todo!()
     }
 
-    fn decode(&mut self, filename: &str) -> Result<Vec<ResourceRecord>, Error> {
+    fn decode(&mut self, filename: &str) -> Result<(Class, Vec<ResourceRecord>), Error> {
         todo!()
     }
 
     fn encode(
         &mut self,
-        rrs: Vec<Rc<RefCell<ResourceRecord>>>,
         filename: &str,
+        rrs: Vec<Rc<RefCell<ResourceRecord>>>,
+        class: Class,
     ) -> Result<(), Error> {
         todo!()
     }

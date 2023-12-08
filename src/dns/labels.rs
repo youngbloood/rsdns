@@ -65,6 +65,10 @@ impl Labels {
 
         Ok((label, all_length))
     }
+
+    pub fn encode_to_str(&self) -> String {
+        return self.0.join(".");
+    }
 }
 
 #[cfg(test)]

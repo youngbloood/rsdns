@@ -1,6 +1,7 @@
+use super::domain_tree::ClassDomainTreeUnion;
 use super::master_file::{MasterFileOperation, DMF};
 use super::DomainTree;
-use crate::dns::ResourceRecord;
+use crate::dns::{Question, ResourceRecord};
 use anyhow::{Error, Ok};
 use std::collections::HashMap;
 use std::{cell::RefCell, rc::Rc};
@@ -16,7 +17,7 @@ use std::{cell::RefCell, rc::Rc};
 */
 
 pub struct Zones {
-    domains: HashMap<String, Rc<RefCell<DomainTree>>>,
+    domains: HashMap<String, ClassDomainTreeUnion>,
 }
 
 impl Zones {
@@ -26,16 +27,21 @@ impl Zones {
         }
     }
 
-    pub fn from(coder: Box<dyn MasterFileOperation>) -> Result<Self, Error> {
-        let mut zones = Zones { domains: todo!() };
+    pub fn from(mut coder: Box<dyn MasterFileOperation>) -> Result<Self, Error> {
+        let mut zones = Zones {
+            domains: HashMap::new(),
+        };
         let filenames = coder.calalog();
         for filename in filenames {
-            let rrs = coder.decode(filename.as_str())?;
+            let (class, rrs) = coder.decode(filename.as_str())?;
             let mut dt = DomainTree::new();
             for rr in rrs {
                 dt.push(rr.name());
             }
-            zones.domains.insert(filename, Rc::new(RefCell::new(dt)));
+
+            zones
+                .domains
+                .insert(filename, (class, Rc::new(RefCell::new(dt))));
         }
 
         return Ok(zones);
@@ -45,20 +51,27 @@ impl Zones {
         let mut coder = DMF::new();
         let filenames = coder.calalog();
         for filename in filenames {
-            let rrs = coder.decode(filename.as_str())?;
+            let (class, rrs) = coder.decode(filename.as_str())?;
             let mut dt = DomainTree::new();
             for rr in rrs {
                 dt.push(rr.name());
             }
-            self.domains.insert(filename, Rc::new(RefCell::new(dt)));
+
+            self.domains
+                .insert(filename, (class, Rc::new(RefCell::new(dt))));
         }
 
         Ok(())
     }
 
-    pub fn get_rr(&self, domain: &str) -> Option<Rc<RefCell<ResourceRecord>>> {
-        for (_, dt) in &self.domains {
-            let rr = dt.borrow().get_rr(domain);
+    pub fn get_rr(&self, ques: &Question) -> Option<Rc<RefCell<ResourceRecord>>> {
+        let domain = ques.qname().encode_to_str();
+
+        for (_, (class, dt)) in &self.domains {
+            if ques.qclass().ne(class) {
+                continue;
+            }
+            let rr = dt.borrow().get_rr(domain.as_str());
             if rr.is_some() {
                 return rr;
             }

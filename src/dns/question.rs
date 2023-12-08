@@ -88,7 +88,11 @@ impl Question {
         return Ok(ques);
     }
 
-    pub fn qname(&mut self) -> &mut Labels {
+    pub fn qname(&self) -> &Labels {
+        return &self.qname;
+    }
+
+    pub fn qname_mut(&mut self) -> &mut Labels {
         return &mut self.qname;
     }
 

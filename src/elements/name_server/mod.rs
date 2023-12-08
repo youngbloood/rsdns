@@ -30,11 +30,11 @@
 
 use std::{cell::RefCell, rc::Rc};
 
-use crate::dns::ResourceRecord;
+use crate::dns::{Question, ResourceRecord};
 
 mod server;
 mod zones;
 
 pub trait NameServerOperation {
-    fn find(&mut self, domain: &str) -> Option<Rc<RefCell<ResourceRecord>>>;
+    fn find(&mut self, ques: &Question) -> Option<Rc<RefCell<ResourceRecord>>>;
 }
