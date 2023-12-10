@@ -1,5 +1,7 @@
 use std::net::Ipv4Addr;
 
+use super::{RcRf, VecRcRf};
+
 /// The answer, authority, and additional sections all share the same
 /// format: a variable number of resource records, where the number of
 /// records is specified in the corresponding count field in the header.
@@ -140,18 +142,18 @@ impl ResourceRecord {
 }
 
 #[derive(Debug)]
-pub struct RRs(Vec<ResourceRecord>);
+pub struct RRs(VecRcRf<ResourceRecord>);
 
 impl RRs {
     pub fn new() -> Self {
         Self(vec![])
     }
 
-    pub fn get_0(&self) -> &Vec<ResourceRecord> {
+    pub fn get_0(&self) -> &VecRcRf<ResourceRecord> {
         return &self.0;
     }
 
-    pub fn extend(&mut self, rr: ResourceRecord) {
+    pub fn extend(&mut self, rr: RcRf<ResourceRecord>) {
         self.0.push(rr);
     }
 
@@ -160,7 +162,7 @@ impl RRs {
 
         for rr in &self.0 {
             // encode names
-            result.extend_from_slice(&rr.encode());
+            result.extend_from_slice(&rr.clone().borrow().encode());
         }
 
         return result;

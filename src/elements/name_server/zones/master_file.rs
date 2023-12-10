@@ -1,6 +1,5 @@
-use crate::dns::{Class, ResourceRecord};
+use crate::dns::{Class, ResourceRecord, VecRcRf};
 use anyhow::Error;
-use std::{cell::RefCell, rc::Rc};
 
 /**
  * The Operation of Master Files
@@ -19,7 +18,7 @@ pub trait MasterFileOperation {
     fn encode(
         &mut self,
         filename: &str,
-        rrs: Vec<Rc<RefCell<ResourceRecord>>>,
+        rrs: VecRcRf<ResourceRecord>,
         class: Class,
     ) -> Result<(), Error>;
 }
@@ -51,7 +50,7 @@ impl MasterFileOperation for DMF {
     fn encode(
         &mut self,
         filename: &str,
-        rrs: Vec<Rc<RefCell<ResourceRecord>>>,
+        rrs: VecRcRf<ResourceRecord>,
         class: Class,
     ) -> Result<(), Error> {
         todo!()

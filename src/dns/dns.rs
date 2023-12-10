@@ -3,7 +3,7 @@ use anyhow::Error;
 use super::header::Header;
 use super::question::Question;
 use super::rr::RRs;
-use super::ResourceRecord;
+use super::{RcRf, ResourceRecord};
 
 /**
 # DNS Structure:
@@ -72,7 +72,7 @@ impl DNS {
         return &mut self.ques;
     }
 
-    pub fn with_answer(&mut self, rr: ResourceRecord) {
+    pub fn with_answer(&mut self, rr: RcRf<ResourceRecord>) {
         if self.answers.is_none() {
             self.answers = Some(RRs::new())
         }

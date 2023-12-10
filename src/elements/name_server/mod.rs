@@ -28,13 +28,11 @@
     dt is a shortening of domian_tree.
 */
 
-use std::{cell::RefCell, rc::Rc};
-
-use crate::dns::{Question, ResourceRecord};
-
 mod server;
 mod zones;
 
+use crate::dns::{Question, RcRf, ResourceRecord};
+
 pub trait NameServerOperation {
-    fn find(&mut self, ques: &Question) -> Option<Rc<RefCell<ResourceRecord>>>;
+    fn find(&mut self, ques: &Question) -> Option<RcRf<ResourceRecord>>;
 }

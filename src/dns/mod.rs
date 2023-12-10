@@ -4,6 +4,8 @@ pub mod labels;
 pub mod question;
 pub mod rr;
 
+use std::{cell::RefCell, rc::Rc};
+
 pub use dns::DNS;
 pub use header::Header;
 pub use question::Question;
@@ -80,3 +82,7 @@ pub const CLASS_HS: Class = 4;
 
 /// for QClass
 pub const CLASS_WILDCARDS: Class = 255;
+
+pub type RcRf<T> = Rc<RefCell<T>>;
+
+pub type VecRcRf<T> = Vec<RcRf<T>>;

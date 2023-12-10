@@ -99,16 +99,16 @@ XX.LCS.MIT.EDU.  All of the leaves are also domains.
 
 */
 
-use crate::dns::{Class, ResourceRecord};
+use crate::dns::{Class, RcRf, ResourceRecord, VecRcRf};
 use std::{cell::RefCell, rc::Rc};
 
-pub type ClassDomainTreeUnion = (Class, Rc<RefCell<DomainTree>>);
+pub type ClassDomainTreeUnion = (Class, RcRf<DomainTree>);
 
 #[derive(Debug)]
 pub struct DomainTree {
     owner: String,
-    leaves: Vec<Rc<RefCell<DomainTree>>>,
-    rr: Option<Rc<RefCell<ResourceRecord>>>,
+    leaves: VecRcRf<DomainTree>,
+    rr: Option<RcRf<ResourceRecord>>,
 }
 
 impl DomainTree {
@@ -170,7 +170,7 @@ impl DomainTree {
         }
     }
 
-    pub fn set_rr(&mut self, domain: &str, rr: Rc<RefCell<ResourceRecord>>) {
+    pub fn set_rr(&mut self, domain: &str, rr: RcRf<ResourceRecord>) {
         let _rr = Rc::clone(&rr);
         if !domain.contains(".") {
             match self
@@ -215,7 +215,7 @@ impl DomainTree {
         }
     }
 
-    pub fn get_rr(&self, domain: &str) -> Option<Rc<RefCell<ResourceRecord>>> {
+    pub fn get_rr(&self, domain: &str) -> Option<RcRf<ResourceRecord>> {
         if !domain.contains(".") {
             match self
                 .leaves

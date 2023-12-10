@@ -1,8 +1,9 @@
 use super::domain_tree::ClassDomainTreeUnion;
 use super::master_file::{MasterFileOperation, DMF};
 use super::DomainTree;
-use crate::dns::{Question, ResourceRecord};
+use crate::dns::{Question, RcRf, ResourceRecord};
 use anyhow::{Error, Ok};
+use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::{cell::RefCell, rc::Rc};
 
@@ -33,11 +34,23 @@ impl Zones {
         };
         let filenames = coder.calalog();
         for filename in filenames {
-            let (class, rrs) = coder.decode(filename.as_str())?;
+            let (class, mut _rrs) = coder.decode(filename.as_str())?;
             let mut dt = DomainTree::new();
-            for rr in rrs {
-                dt.push(rr.name());
+
+            let mut rrs = _rrs.into_iter();
+            let mut rr = rrs.next();
+            while rr.is_some() {
+                dt.push(rr.as_ref().unwrap().name());
+                // TODO: set_rr
+                // dt.set_rr(name, Rc::new(RefCell::new(rr.take().unwrap())));
+                rr = rrs.next();
             }
+
+            // for i in rrs.len() - 1..0 {
+            //     let rr = rrs.as_mut_slice().get(i).unwrap();
+            //     dt.push(&rr.name());
+            //     dt.set_rr(&rr.name(), Rc::new(RefCell::new(rrs.pop().unwrap())));
+            // }
 
             zones
                 .domains
@@ -64,7 +77,7 @@ impl Zones {
         Ok(())
     }
 
-    pub fn get_rr(&self, ques: &Question) -> Option<Rc<RefCell<ResourceRecord>>> {
+    pub fn get_rr(&self, ques: &Question) -> Option<RcRf<ResourceRecord>> {
         let domain = ques.qname().encode_to_str();
 
         for (_, (class, dt)) in &self.domains {

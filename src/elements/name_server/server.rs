@@ -2,7 +2,7 @@ use super::{
     zones::{zone::Zones, ZonesOperation, DZS},
     NameServerOperation,
 };
-use crate::dns::{Question, ResourceRecord};
+use crate::dns::{Question, RcRf, ResourceRecord, VecRcRf};
 use std::{cell::RefCell, rc::Rc};
 
 /**
@@ -13,7 +13,7 @@ use std::{cell::RefCell, rc::Rc};
     foreign name servers.
 */
 pub struct NameServer {
-    zones: Vec<Rc<RefCell<Zones>>>,
+    zones: VecRcRf<Zones>,
 }
 
 impl NameServer {
@@ -37,7 +37,7 @@ impl NameServer {
 }
 
 impl NameServerOperation for NameServer {
-    fn find(&mut self, ques: &Question) -> Option<Rc<RefCell<ResourceRecord>>> {
+    fn find(&mut self, ques: &Question) -> Option<RcRf<ResourceRecord>> {
         for zone in &self.zones {
             let rr = zone.borrow().get_rr(ques);
             if rr.is_some() {
