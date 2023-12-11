@@ -38,19 +38,14 @@ impl Zones {
             let mut dt = DomainTree::new();
 
             let mut rrs = _rrs.into_iter();
-            let mut rr = rrs.next();
-            while rr.is_some() {
-                dt.push(rr.as_ref().unwrap().name());
-                // TODO: set_rr
-                // dt.set_rr(name, Rc::new(RefCell::new(rr.take().unwrap())));
-                rr = rrs.next();
+            let mut _rr = rrs.next();
+            while _rr.is_some() {
+                let rr = _rr.unwrap();
+                let name = rr.name().to_string();
+                dt.push(name.as_str());
+                dt.set_rr(name.as_str(), Rc::new(RefCell::new(rr)));
+                _rr = rrs.next();
             }
-
-            // for i in rrs.len() - 1..0 {
-            //     let rr = rrs.as_mut_slice().get(i).unwrap();
-            //     dt.push(&rr.name());
-            //     dt.set_rr(&rr.name(), Rc::new(RefCell::new(rrs.pop().unwrap())));
-            // }
 
             zones
                 .domains
