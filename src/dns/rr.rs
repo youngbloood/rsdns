@@ -142,15 +142,15 @@ impl ResourceRecord {
 }
 
 #[derive(Debug)]
-pub struct RRs(VecRcRf<ResourceRecord>);
+pub struct RRs(pub VecRcRf<ResourceRecord>);
 
 impl RRs {
     pub fn new() -> Self {
         Self(vec![])
     }
 
-    pub fn get_0(&self) -> &VecRcRf<ResourceRecord> {
-        return &self.0;
+    pub fn len(&self) -> usize {
+        return self.0.len();
     }
 
     pub fn extend(&mut self, rr: RcRf<ResourceRecord>) {

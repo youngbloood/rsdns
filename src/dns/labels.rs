@@ -6,7 +6,7 @@ use nom::AsChar;
 /// characters only letters, digits, and hyphen.  There are also some
 /// restrictions on the length.  Labels must be 63 characters or less.
 #[derive(Debug)]
-pub struct Labels(Vec<String>);
+pub struct Labels(pub Vec<String>);
 
 impl Labels {
     pub fn new() -> Self {
@@ -23,21 +23,13 @@ impl Labels {
         }
     }
 
-    pub fn get_0(&self) -> &Vec<String> {
-        return &self.0;
-    }
-
-    pub fn get_mut_0(&mut self) -> &mut Vec<String> {
-        return &mut self.0;
-    }
-
     pub fn from(raw: &[u8]) -> Result<(Self, usize), Error> {
         let mut label = Labels { 0: vec![] };
         let mut iter = raw.as_ref().into_iter();
         let mut start = 0_usize;
         let mut all_length = 0;
 
-        let label_err: Error = Error::msg("the question package not incomplete");
+        let label_err: Error = Error::msg("the question's label not incomplete");
 
         loop {
             let u = iter.next().unwrap_or(&('\x00' as u8));

@@ -96,6 +96,11 @@ impl Question {
         return &mut self.qname;
     }
 
+    pub fn with_name(&mut self, name: &str) -> &mut Self {
+        self.qname.0.push(name.to_string());
+        return self;
+    }
+
     pub fn length(&self) -> usize {
         return self.length;
     }
@@ -104,23 +109,25 @@ impl Question {
         return self.qtype;
     }
 
-    pub fn with_qtype(&mut self, qtype: Type) {
-        return self.qtype = qtype;
+    pub fn with_qtype(&mut self, qtype: Type) -> &mut Self {
+        self.qtype = qtype;
+        return self;
     }
 
     pub fn qclass(&self) -> Class {
         return self.qclass;
     }
 
-    pub fn with_qclass(&mut self, class: Class) {
-        return self.qclass = class;
+    pub fn with_qclass(&mut self, class: Class) -> &mut Self {
+        self.qclass = class;
+        return self;
     }
 
     pub fn encode(&self) -> Vec<u8> {
         let mut result = Vec::<u8>::new();
 
         // encode domain qname
-        for name in self.qname.get_0() {
+        for name in &self.qname.0 {
             result.push(name.len() as u8);
             for v in name.as_bytes() {
                 result.push(*v);
@@ -155,16 +162,10 @@ mod tests {
             0x11, 0x22, 0x33, 0x44,
         ]);
         assert_eq!(true, ques.as_ref().is_ok());
-        assert_eq!(2, ques.as_mut().unwrap().qname().get_0().len());
+        assert_eq!(2, ques.as_mut().unwrap().qname().0.len());
         assert_eq!(16, ques.as_ref().unwrap().length());
-        assert_eq!(
-            "google",
-            ques.as_mut().unwrap().qname().get_0().get(0).unwrap()
-        );
-        assert_eq!(
-            "com",
-            ques.as_mut().unwrap().qname().get_0().get(1).unwrap()
-        );
+        assert_eq!("google", ques.as_mut().unwrap().qname().0.get(0).unwrap());
+        assert_eq!("com", ques.as_mut().unwrap().qname().0.get(1).unwrap());
 
         // incorrect
         let mut raw = vec![
@@ -185,7 +186,7 @@ mod tests {
         // correct
         let mut labels = Labels::new();
         labels
-            .get_mut_0()
+            .0
             .extend_from_slice(&vec!["google".to_string(), "com".to_string()]);
         println!("labels = {:?}", &labels);
         let ques = Question {

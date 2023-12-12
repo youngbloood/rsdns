@@ -1,3 +1,6 @@
+use rand::Rng;
+use std::ops;
+
 use rsbit::BitOperation;
 
 /**
@@ -27,7 +30,13 @@ pub struct Header([u8; 12]);
 
 impl Header {
     pub fn new() -> Self {
-        return Header([0; 12]);
+        let mut hd = Header([0; 12]);
+        let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
+        let id: u16 = rng.gen();
+        let ids = id.to_be_bytes();
+        hd.0[0] = ids[0];
+        hd.0[1] = ids[1];
+        return hd;
     }
 
     pub fn from(raw: [u8; 12]) -> Self {

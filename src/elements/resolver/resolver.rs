@@ -76,7 +76,7 @@ impl Resolver {
 impl ResolveOperation for Resolver {
     fn resolve(&self, dns: &mut crate::DNS, recursive: bool, from_id: u32) -> Result<(), Error> {
         for ns in &self.name_servers {
-            let rr = ns.find(&dns.ques());
+            let rr = ns.find(&dns.ques()[0]);
             // TODO: 判断是否满足resolve条件
             if rr.is_some() {
                 // let _rr = rr.unwrap().into_inner();

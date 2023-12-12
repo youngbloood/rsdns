@@ -3,7 +3,7 @@ use anyhow::Error;
 use super::header::Header;
 use super::question::Question;
 use super::rr::RRs;
-use super::{RcRf, ResourceRecord};
+use super::{Class, RcRf, ResourceRecord, Type};
 
 /**
 # DNS Structure:
@@ -23,43 +23,43 @@ use super::{RcRf, ResourceRecord};
 
 #[derive(Debug)]
 pub struct DNS {
-    raw: Vec<u8>,
+    _raw: Vec<u8>,
 
     head: Header,
-    ques: Question,
-    answers: Option<RRs>,
-    authority: Option<RRs>,
-    additional: Option<RRs>,
+    ques: Vec<Question>,
+    answers: RRs,
+    authority: RRs,
+    additional: RRs,
 }
 
 impl DNS {
     pub fn new() -> Self {
         Self {
-            raw: vec![],
+            _raw: vec![],
             head: Header::new(),
-            ques: Question::new(),
-            answers: None,
-            authority: None,
-            additional: None,
+            ques: vec![],
+            answers: RRs::new(),
+            authority: RRs::new(),
+            additional: RRs::new(),
         }
     }
-    pub fn from(raw: &[u8]) -> Result<Self, Error> {
+    pub fn from(_raw: &[u8]) -> Result<Self, Error> {
         let dns_packet_err = Err(Error::msg("the dns package not incomplete"));
-        if raw.len() < 12 {
+        if _raw.len() < 12 {
             return dns_packet_err;
         }
 
         let mut dns = Self {
-            raw: raw.to_vec(),
+            _raw: _raw.to_vec(),
 
-            head: Header::from(raw[..12].try_into().expect("slice covert to array error")),
-            ques: todo!(),
-            answers: None,
-            authority: None,
-            additional: None,
+            head: Header::from(_raw[..12].try_into().expect("slice covert to array error")),
+            ques: vec![],
+            answers: RRs::new(),
+            authority: RRs::new(),
+            additional: RRs::new(),
         };
 
-        dns.ques = Question::from(&raw[12..])?;
+        dns.ques.push(Question::from(&_raw[12..])?);
 
         return Ok(dns);
     }
@@ -68,44 +68,52 @@ impl DNS {
         return &mut self.head;
     }
 
-    pub fn ques(&mut self) -> &mut Question {
+    pub fn ques(&mut self) -> &mut Vec<Question> {
         return &mut self.ques;
     }
 
-    pub fn with_answer(&mut self, rr: RcRf<ResourceRecord>) {
-        if self.answers.is_none() {
-            self.answers = Some(RRs::new())
+    pub fn with_ques(&mut self, domain: &str, qtype: Type, qclass: Class) {
+        let mut ques = Question::new();
+        let mut names = domain.split(".");
+        let mut iter = names.next();
+        while iter.is_some() {
+            ques.with_name(iter.unwrap());
+            iter = names.next();
         }
-        self.answers.as_mut().unwrap().extend(rr);
+        ques.with_qclass(qclass).with_qtype(qtype);
+
+        self.ques.push(ques);
+    }
+
+    pub fn with_answer(&mut self, rr: RcRf<ResourceRecord>) {
+        self.answers.extend(rr);
+    }
+
+    pub fn with_authority(&mut self, ns: RcRf<ResourceRecord>) {
+        self.authority.extend(ns);
+    }
+
+    pub fn with_additional(&mut self, ar: RcRf<ResourceRecord>) {
+        self.additional.extend(ar);
     }
 
     pub fn encode(&mut self) -> Vec<u8> {
         let mut result = Vec::<u8>::new();
 
-        if self.answers.is_some() {
-            self.head
-                .with_ancount(self.answers.as_ref().unwrap().get_0().len() as u16);
-        }
-        if self.authority.is_some() {
-            self.head
-                .with_nscount(self.authority.as_ref().unwrap().get_0().len() as u16);
-        }
-        if self.additional.is_some() {
-            self.head
-                .with_arcount(self.additional.as_ref().unwrap().get_0().len() as u16);
-        }
-        result.extend_from_slice(&self.head.get_0());
-        result.extend_from_slice(&self.ques.encode());
+        self.head.with_qdcount(self.ques.len() as u16);
+        self.head.with_ancount(self.answers.len() as u16);
+        self.head.with_nscount(self.authority.len() as u16);
+        self.head.with_arcount(self.additional.len() as u16);
 
-        if self.answers.is_some() {
-            result.extend_from_slice(&self.answers.as_ref().unwrap().encode());
+        result.extend_from_slice(&self.head.get_0());
+        for ques in &self.ques {
+            result.extend_from_slice(&ques.encode());
         }
-        if self.authority.is_some() {
-            result.extend_from_slice(&self.authority.as_ref().unwrap().encode());
-        }
-        if self.additional.is_some() {
-            result.extend_from_slice(&self.additional.as_ref().unwrap().encode());
-        }
+
+        result.extend_from_slice(&self.answers.encode());
+        result.extend_from_slice(&self.authority.encode());
+        result.extend_from_slice(&self.additional.encode());
+
         return result;
     }
 }
