@@ -11,22 +11,49 @@
 
 
 
+Resolver Structure:
+```shell
++-------------------------------------------------------+
+|                     Resolver                          |
++---------------+--------------------+------------------+
+|   NameServers  |    peer_resolver1  |   peer_resolvern |
++---------------+--------------------+------------------+
+```
 
-+-----------------------------------------+
-|               Resolver                  |
+Request Topology:
 
 
+```shell
+                                client
+                                  |
+                                  | dns packet
+                                  |
+                                  V        query local
+                                Resolver  -------------> NameServers
+                              /   |    \
+                            /     |     \
+       NameServers <-- Resolver --+---- Resolver --> NameServers
+                            \     |     /
+                             \    |    /
+                               Resolver
+                                  |
+                                  V
+                              NameServers
+
+```
+1. Then  client dns packet request the Resolver, the Resolver first step query from the local NameServers, if not found the rr, then forward the dns quest to the other.
+2. The next Resolver receive a dns request, perform the same logic like the step 1.
 */
 
+mod forward;
 mod resolver;
-use std::{cell::RefCell, rc::Rc};
-
-use anyhow::Error;
 
 use crate::{
     dns::{Question, ResourceRecord},
     DNS,
 };
+use anyhow::Error;
+use std::{cell::RefCell, rc::Rc};
 
 /**
  * calalog of the NameServers
@@ -50,8 +77,20 @@ pub trait ResolvePeer {
 }
 
 /**
- * now Resolver trait
+ * Resolver Service trait
+ * from_id: avoid the recursive invoke the 'resolve' or 'receive_register'
  */
 pub trait ResolveOperation {
-    fn resolve(&self, dns: &mut DNS, recursive: bool) -> Result<(), Error>;
+    /// resolve a dns packat
+    fn resolve(&self, dns: &mut DNS, recursive: bool, from_id: u32) -> Result<(), Error>;
+    /// register receive a Resolver info to register to local
+    fn receive_register(&self, metadate: ResolverMetadata) -> Result<(), Error>;
+    /// keep the heartbeat with the target Resolver that had registered in local
+    fn heartbeat(&self, metadate: ResolverMetadata) -> Result<(), Error>;
+}
+
+pub struct ResolverMetadata {
+    pub id: u32,
+    pub src_addr: String,
+    pub recursive: bool,
 }
