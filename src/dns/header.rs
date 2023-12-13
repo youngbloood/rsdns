@@ -79,15 +79,17 @@ impl Header {
     A one bit field that specifies whether this message is a
     query (0), or a response (1).
     */
-    pub fn qr(&self) -> u8 {
-        return self.0[2] & 0b0000_0001;
+    pub fn qr(&self) -> bool {
+        return (self.0[2] & 0b1000_0000) == 0b1000_0000;
     }
 
-    pub fn with_qr(&mut self, qr: u8) -> &mut Self {
-        if qr > 1 {
-            return self;
+    pub fn with_qr(&mut self, rd: bool) -> &mut Self {
+        if rd {
+            self.set_bit(2, 7, 1);
+        } else {
+            self.set_bit(2, 7, 0);
         }
-        return self.set_bit(2, 0, qr);
+        return self;
     }
 
     /**
@@ -102,33 +104,34 @@ impl Header {
     ```
     */
     pub fn opcode(&self) -> u8 {
-        return (self.0[2] & 0b0001_1110) >> 1;
+        return (self.0[2] & 0b0111_1000) >> 3;
     }
 
     pub fn with_opcode(&mut self, opcode: u8) -> &mut Self {
-        if opcode << 1 > 0b0001_1110 {
+        if opcode > 0xF {
             return self;
         }
+        let oc: u8 = opcode << 3;
 
-        if opcode << 1 & 0b0000_0010 == 0b0000_0010 {
-            self.set_bit(2, 1, 1);
+        if oc & 0b0100_0000 == 0b0100_0000 {
+            self.set_bit(2, 6, 1);
         } else {
-            self.set_bit(2, 1, 0);
+            self.set_bit(2, 6, 0);
         }
-        if opcode << 1 & 0b0000_0100 == 0b0000_0100 {
-            self.set_bit(2, 2, 1);
+        if oc & 0b0010_0000 == 0b0010_0000 {
+            self.set_bit(2, 5, 1);
         } else {
-            self.set_bit(2, 2, 0);
+            self.set_bit(2, 5, 0);
         }
-        if opcode << 1 & 0b0000_1000 == 0b0000_1000 {
-            self.set_bit(2, 3, 1);
-        } else {
-            self.set_bit(2, 3, 0);
-        }
-        if opcode << 1 & 0b0001_0000 == 0b0001_0000 {
+        if oc & 0b0001_0000 == 0b0001_0000 {
             self.set_bit(2, 4, 1);
         } else {
             self.set_bit(2, 4, 0);
+        }
+        if oc & 0b0000_1000 == 0b0000_1000 {
+            self.set_bit(2, 3, 1);
+        } else {
+            self.set_bit(2, 3, 0);
         }
 
         return self;
@@ -143,15 +146,17 @@ impl Header {
     corresponds to the name which matches the query name, or
     the first owner name in the answer section.
     */
-    pub fn aa(&self) -> u8 {
-        return (self.0[2] & 0b0010_0000) >> 5;
+    pub fn aa(&self) -> bool {
+        return (self.0[2] & 0b0000_0100) == 0b0000_0100;
     }
 
-    pub fn with_aa(&mut self, aa: u8) -> &mut Self {
-        if aa > 1 {
-            return self;
+    pub fn with_aa(&mut self, aa: bool) -> &mut Self {
+        if aa {
+            self.set_bit(2, 2, 1);
+        } else {
+            self.set_bit(2, 2, 0);
         }
-        return self.set_bit(2, 5, aa);
+        return self;
     }
 
     /**
@@ -159,15 +164,17 @@ impl Header {
     due to length greater than that permitted on the
     transmission channel.
     */
-    pub fn tc(&self) -> u8 {
-        return (self.0[2] & 0b0100_0000) >> 6;
+    pub fn tc(&self) -> bool {
+        return (self.0[2] & 0b0000_0010) == 0b0000_0010;
     }
 
-    pub fn with_tc(&mut self, tc: u8) -> &mut Self {
-        if tc > 1 {
-            return self;
+    pub fn with_tc(&mut self, tc: bool) -> &mut Self {
+        if tc {
+            self.set_bit(2, 1, 1);
+        } else {
+            self.set_bit(2, 1, 0);
         }
-        return self.set_bit(2, 6, tc);
+        return self;
     }
 
     /**
@@ -178,15 +185,17 @@ impl Header {
 
     other ref: https://www.rfc-editor.org/rfc/rfc1034.html#section-4.3.1
     */
-    pub fn rd(&self) -> u8 {
-        return (self.0[2] & 0b1000_0000) >> 7;
+    pub fn rd(&self) -> bool {
+        return self.0[2] & 0b0000_0001 == 0b0000_0001;
     }
 
-    pub fn with_rd(&mut self, rd: u8) -> &mut Self {
-        if rd > 1 {
-            return self;
+    pub fn with_rd(&mut self, rd: bool) -> &mut Self {
+        if rd {
+            self.set_bit(2, 0, 1);
+        } else {
+            self.set_bit(2, 0, 0);
         }
-        return self.set_bit(2, 7, rd);
+        return self;
     }
 
     /**
@@ -196,15 +205,17 @@ impl Header {
 
     other ref: https://www.rfc-editor.org/rfc/rfc1034.html#section-4.3.1
     */
-    pub fn ra(&self) -> u8 {
-        return self.0[3] & 0b0000_0001;
+    pub fn ra(&self) -> bool {
+        return self.0[3] & 0b1000_0000 == 0b1000_0000;
     }
 
-    pub fn with_ra(&mut self, ra: u8) -> &mut Self {
-        if ra > 1 {
-            return self;
+    pub fn with_ra(&mut self, ra: bool) -> &mut Self {
+        if ra {
+            self.set_bit(3, 7, 1);
+        } else {
+            self.set_bit(3, 7, 0);
         }
-        return self.set_bit(3, 0, ra);
+        return self;
     }
 
     /**
@@ -212,28 +223,29 @@ impl Header {
     and responses.
     */
     pub fn z(&self) -> u8 {
-        return (self.0[3] & 0b0000_1110) >> 1;
+        return (self.0[3] & 0b0111_0000) >> 4;
     }
 
-    pub fn with_z(&mut self, z: u32) -> &mut Self {
-        if z << 1 > 0b0000_1110 {
+    pub fn with_z(&mut self, z: u8) -> &mut Self {
+        if z > 0x7 {
             return self;
         }
+        let _z = z << 4;
 
-        if z << 1 & 0b0000_0010 == 0b0000_0010 {
-            self.set_bit(3, 1, 1);
+        if _z & 0b0100_0000 == 0b0100_0000 {
+            self.set_bit(3, 6, 1);
         } else {
-            self.set_bit(3, 1, 0);
+            self.set_bit(3, 6, 0);
         }
-        if z << 1 & 0b0000_0100 == 0b0000_0100 {
-            self.set_bit(3, 2, 1);
+        if _z & 0b0010_0000 == 0b0010_0000 {
+            self.set_bit(3, 5, 1);
         } else {
-            self.set_bit(3, 2, 0);
+            self.set_bit(3, 5, 0);
         }
-        if z << 1 & 0b0000_1000 == 0b0000_1000 {
-            self.set_bit(3, 3, 1);
+        if _z & 0b0001_0000 == 0b0001_0000 {
+            self.set_bit(3, 4, 1);
         } else {
-            self.set_bit(3, 3, 0);
+            self.set_bit(3, 4, 0);
         }
 
         return self;
@@ -269,33 +281,33 @@ impl Header {
     ```
     */
     pub fn rcode(&self) -> u8 {
-        return (self.0[3] & 0b1111_0000) >> 4;
+        return self.0[3] & 0b0000_1111;
     }
 
-    pub fn with_rcode(&mut self, rcode: u32) -> &mut Self {
-        if rcode << 4 > 0b1111_0000 {
+    pub fn with_rcode(&mut self, rcode: u8) -> &mut Self {
+        if rcode > 0xF {
             return self;
         }
 
-        if rcode << 4 & 0b0001_0000 == 0b0001_0000 {
-            self.set_bit(3, 4, 1);
+        if rcode & 0b0000_1000 == 0b0000_1000 {
+            self.set_bit(3, 3, 1);
         } else {
-            self.set_bit(3, 4, 0);
+            self.set_bit(3, 3, 0);
         }
-        if rcode << 4 & 0b0010_0000 == 0b0010_0000 {
-            self.set_bit(3, 5, 1);
+        if rcode & 0b0000_0100 == 0b0000_0100 {
+            self.set_bit(3, 2, 1);
         } else {
-            self.set_bit(3, 5, 0);
+            self.set_bit(3, 2, 0);
         }
-        if rcode << 4 & 0b0100_0000 == 0b0100_0000 {
-            self.set_bit(3, 6, 1);
+        if rcode & 0b0000_0010 == 0b0000_0010 {
+            self.set_bit(3, 1, 1);
         } else {
-            self.set_bit(3, 6, 0);
+            self.set_bit(3, 1, 0);
         }
-        if rcode << 4 & 0b1000_0000 == 0b1000_0000 {
-            self.set_bit(3, 7, 1);
+        if rcode & 0b0000_0001 == 0b0000_0001 {
+            self.set_bit(3, 0, 1);
         } else {
-            self.set_bit(3, 7, 0);
+            self.set_bit(3, 0, 0);
         }
 
         return self;
@@ -386,30 +398,30 @@ mod tests {
 
     #[test]
     pub fn test_header_qr() {
-        let mut head = Header([0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-        assert_eq!(1, head.qr());
-        let head = Header([0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-        assert_eq!(0, head.qr());
+        let mut head = Header([0, 0, 0xFF, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(true, head.qr());
+        head = Header([0, 0, 0xF, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(false, head.qr());
     }
 
     #[test]
     pub fn test_header_with_qr() {
         let mut head = Header([0; 12]);
-        head.with_qr(12);
-        assert_eq!(0, head.qr());
-        head.with_qr(1);
-        assert_eq!(1, head.qr());
-        head.with_qr(0);
-        assert_eq!(0, head.qr());
+        head.with_qr(false);
+        assert_eq!(false, head.qr());
+        head.with_qr(true);
+        assert_eq!(true, head.qr());
+        head.with_qr(false);
+        assert_eq!(false, head.qr());
     }
 
     #[test]
     pub fn test_header_opcode() {
         let mut head = Header([0, 0, u8::MAX, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
         assert_eq!(15, head.opcode());
-        head = Header([0, 0, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        head = Header([0, 0, 0b0111_1000, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
         assert_eq!(15, head.opcode());
-        head = Header([0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        head = Header([0, 0, 0b0000_1000, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
         assert_eq!(1, head.opcode());
     }
 
@@ -427,88 +439,80 @@ mod tests {
     #[test]
     pub fn test_header_aa() {
         let mut head = Header([0, 0, u8::MAX, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-        assert_eq!(1, head.aa());
-        let mut head = Header([0, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-        assert_eq!(0, head.aa());
+        assert_eq!(true, head.aa());
+        head = Header([0, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(false, head.aa());
     }
 
     #[test]
     pub fn test_header_with_aa() {
         let mut head = Header([0; 12]);
-        head.with_aa(1);
-        assert_eq!(1, head.aa());
-        head.with_aa(2);
-        assert_eq!(1, head.aa());
-        head.with_aa(0);
-        assert_eq!(0, head.aa());
+        head.with_aa(true);
+        assert_eq!(true, head.aa());
+        head.with_aa(false);
+        assert_eq!(false, head.aa());
     }
 
     #[test]
     pub fn test_header_tc() {
         let mut head = Header([0, 0, u8::MAX, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-        assert_eq!(1, head.tc());
-        let mut head = Header([0, 0, 64, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-        assert_eq!(1, head.tc());
-        let mut head = Header([0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-        assert_eq!(0, head.tc());
+        assert_eq!(true, head.tc());
+        head = Header([0, 0, 0b0000_0010, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(true, head.tc());
+        head = Header([0, 0, 0b0000_0000, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(false, head.tc());
     }
 
     #[test]
     pub fn test_header_with_tc() {
         let mut head = Header([0; 12]);
-        head.with_tc(1);
-        assert_eq!(1, head.tc());
-        head.with_tc(2);
-        assert_eq!(1, head.tc());
-        head.with_tc(0);
-        assert_eq!(0, head.tc());
+        head.with_tc(true);
+        assert_eq!(true, head.tc());
+        head.with_tc(false);
+        assert_eq!(false, head.tc());
     }
 
     #[test]
     pub fn test_header_rd() {
         let mut head = Header([0, 0, u8::MAX, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-        assert_eq!(1, head.rd());
-        let mut head = Header([0, 0, 160, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-        assert_eq!(1, head.rd());
-        let mut head = Header([0, 0, 32, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-        assert_eq!(0, head.rd());
+        assert_eq!(true, head.rd());
+        head = Header([0, 0, 0b0000_0001, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(true, head.rd());
+        head = Header([0, 0, 0b0000_0010, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(false, head.rd());
     }
 
     #[test]
     pub fn test_header_with_rd() {
         let mut head = Header([0; 12]);
-        head.with_rd(1);
-        assert_eq!(1, head.rd());
-        head.with_rd(2);
-        assert_eq!(1, head.rd());
-        head.with_rd(0);
-        assert_eq!(0, head.rd());
+        head.with_rd(true);
+        assert_eq!(true, head.rd());
+        head.with_rd(false);
+        assert_eq!(false, head.rd());
     }
 
     #[test]
     pub fn test_header_ra() {
-        let mut head = Header([0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0]);
-        assert_eq!(1, head.ra());
-        let mut head = Header([0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0]);
-        assert_eq!(1, head.ra());
-        let mut head = Header([0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0]);
-        assert_eq!(0, head.ra());
+        let mut head = Header([0, 0, 0, 0b1000_0000, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(true, head.ra());
+        head = Header([0, 0, 0, u8::MAX, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(true, head.ra());
+        head = Header([0, 0, 0, 0b0100_0000, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(false, head.ra());
     }
 
     #[test]
     pub fn test_header_with_ra() {
         let mut head = Header([0; 12]);
-        head.with_ra(1);
-        assert_eq!(1, head.ra());
-        head.with_ra(2);
-        assert_eq!(1, head.ra());
-        head.with_ra(0);
-        assert_eq!(0, head.ra());
+        head.with_ra(true);
+        assert_eq!(true, head.ra());
+        head.with_ra(false);
+        assert_eq!(false, head.ra());
     }
 
     #[test]
     pub fn test_header_z() {
-        let mut head = Header([0, 0, 0, 14, 0, 0, 0, 0, 0, 0, 0, 0]);
+        let head = Header([0, 0, 0, 0b0111_0000, 0, 0, 0, 0, 0, 0, 0, 0]);
         assert_eq!(7, head.z());
     }
 
@@ -525,8 +529,10 @@ mod tests {
 
     #[test]
     pub fn test_header_rcode() {
-        let mut head = Header([0, 0, 0, 240, 0, 0, 0, 0, 0, 0, 0, 0]);
+        let mut head = Header([0, 0, 0, 0b0000_1111, 0, 0, 0, 0, 0, 0, 0, 0]);
         assert_eq!(15, head.rcode());
+        head = Header([0, 0, 0, 0b0000_0111, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(7, head.rcode());
     }
 
     #[test]
@@ -544,7 +550,7 @@ mod tests {
 
     #[test]
     pub fn test_header_qdcount() {
-        let mut head = Header([0, 0, 0, 14, 2, 4, 0, 0, 0, 0, 0, 0]);
+        let head = Header([0, 0, 0, 14, 2, 4, 0, 0, 0, 0, 0, 0]);
         assert_eq!(516, head.qdcount());
     }
 
@@ -560,7 +566,7 @@ mod tests {
 
     #[test]
     pub fn test_header_ancount() {
-        let mut head = Header([0, 0, 0, 14, 0, 0, 2, 4, 0, 0, 0, 0]);
+        let head = Header([0, 0, 0, 14, 0, 0, 2, 4, 0, 0, 0, 0]);
         assert_eq!(516, head.ancount());
     }
 
@@ -576,7 +582,7 @@ mod tests {
 
     #[test]
     pub fn test_header_nscount() {
-        let mut head = Header([0, 0, 0, 14, 0, 0, 0, 0, 2, 4, 0, 0]);
+        let head = Header([0, 0, 0, 14, 0, 0, 0, 0, 2, 4, 0, 0]);
         assert_eq!(516, head.nscount());
     }
 
@@ -592,7 +598,7 @@ mod tests {
 
     #[test]
     pub fn test_header_arcount() {
-        let mut head = Header([0, 0, 0, 14, 0, 0, 0, 0, 0, 0, 2, 4]);
+        let head = Header([0, 0, 0, 14, 0, 0, 0, 0, 0, 0, 2, 4]);
         assert_eq!(516, head.arcount());
     }
 
