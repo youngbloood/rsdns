@@ -1,5 +1,5 @@
 use super::domain_tree::ClassDomainTreeUnion;
-use super::master_file::{MasterFileOperation, DMF};
+use super::master_file::{DefaultMasterFiles, MasterFileOperation};
 use super::DomainTree;
 use crate::dns::{Question, RcRf, ResourceRecord};
 use anyhow::{Error, Ok};
@@ -56,7 +56,7 @@ impl Zones {
     }
 
     pub fn parse_zone(&mut self) -> Result<(), Error> {
-        let mut coder = DMF::new();
+        let mut coder = DefaultMasterFiles::new();
         let filenames = coder.calalog();
         for filename in filenames {
             let (class, rrs) = coder.decode(filename.as_str())?;

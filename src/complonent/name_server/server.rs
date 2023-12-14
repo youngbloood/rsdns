@@ -1,5 +1,5 @@
 use super::{
-    zones::{zone::Zones, ZonesOperation, DZS},
+    zones::{zone::Zones, DefaultZones, ZonesOperation},
     NameServerOperation,
 };
 use crate::dns::{Question, RcRf, ResourceRecord, VecRcRf};
@@ -19,7 +19,7 @@ pub struct NameServer {
 impl NameServer {
     pub fn new() -> Self {
         let mut ns = NameServer { zones: vec![] };
-        let zones = DZS::new().calalog_zones();
+        let zones = DefaultZones::new().calalog_zones();
         for zone in zones {
             ns.zones.push(Rc::new(RefCell::new(zone)));
         }

@@ -26,11 +26,11 @@ pub trait MasterFileOperation {
 /**
  * Default Master Files
  */
-pub struct DMF {
+pub struct DefaultMasterFiles {
     mf: String,
 }
 
-impl DMF {
+impl DefaultMasterFiles {
     pub fn new() -> Self {
         Self {
             mf: "master_file".to_string(),
@@ -38,7 +38,7 @@ impl DMF {
     }
 }
 
-impl MasterFileOperation for DMF {
+impl MasterFileOperation for DefaultMasterFiles {
     fn calalog(&mut self) -> Vec<String> {
         todo!()
     }

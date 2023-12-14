@@ -12,15 +12,15 @@ pub trait ZonesOperation {
 }
 
 /** Default Zones */
-pub struct DZS;
+pub struct DefaultZones;
 
-impl DZS {
+impl DefaultZones {
     pub fn new() -> Self {
         Self
     }
 }
 
-impl ZonesOperation for DZS {
+impl ZonesOperation for DefaultZones {
     fn calalog_zones(&mut self) -> Vec<Zones> {
         todo!()
     }
