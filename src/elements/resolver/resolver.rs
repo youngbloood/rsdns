@@ -6,7 +6,7 @@ use nom::Err;
 use crate::dns::RcRf;
 
 use super::{
-    forward::{ForwardOperation, DF},
+    forward::{DefaultForward, ForwardOperation},
     NameServerQuery, NameServersQuery, ResolveOperation, ResolvePeer,
 };
 
@@ -46,7 +46,7 @@ impl Resolver {
         Self {
             name_servers: vec![],
             peers: vec![],
-            forward: Some(Box::new(DF::new())),
+            forward: Some(Box::new(DefaultForward::new())),
         }
     }
 

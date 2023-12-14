@@ -1,5 +1,7 @@
 use std::net::Ipv4Addr;
 
+use anyhow::Error;
+
 use super::{RcRf, VecRcRf};
 
 /// The answer, authority, and additional sections all share the same
@@ -71,6 +73,17 @@ impl ResourceRecord {
             rdlength: 0,
             rdata: vec![],
         }
+    }
+
+    pub fn from(raw: &[u8]) -> Result<Self, Error> {
+        let mut rr = ResourceRecord {
+            name: todo!(),
+            typ: todo!(),
+            class: todo!(),
+            ttl: todo!(),
+            rdlength: todo!(),
+            rdata: todo!(),
+        };
     }
 
     pub fn name(&self) -> &str {
