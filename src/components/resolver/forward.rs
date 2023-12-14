@@ -51,9 +51,11 @@ impl ForwardOperation for DefaultForward {
 
                 socket.send(&dns.encode()).expect("query dns failed");
 
-                let mut resp = [0u8; 512];
-                socket.recv_from(&mut resp)?;
-                let new_dns: DNS = DNS::from(&resp.to_vec())?;
+                let mut buff = [0u8; 512];
+                let (data_len, _) = socket.recv_from(&mut buff)?;
+                let resp = &buff[..data_len];
+                println!("resp = {:?}", resp);
+                let new_dns: DNS = DNS::from(resp)?;
 
                 Ok(new_dns)
             }
@@ -72,11 +74,12 @@ mod tests {
     #[test]
     fn test_default_forward_forward() {
         let mut dns = DNS::new();
-        dns.with_ques("baidu.com", dns::TYPE_MX, dns::CLASS_IN);
+        dns.with_ques("google.com", dns::TYPE_MX, dns::CLASS_IN);
+        // dns.with_ques("google.com", dns::TYPE_MX, dns::CLASS_IN);
         dns.head().with_rd(true);
         println!("dns1 = {:?}", &dns.encode());
 
-        let mut fwd = DefaultForward::new();
+        let mut fwd: DefaultForward = DefaultForward::new();
         fwd.with_target("8.8.8.8:53").with_protocol("udp");
         let new_dns = fwd.forward(&mut dns).unwrap();
         println!("new_dns = {:?}", new_dns);

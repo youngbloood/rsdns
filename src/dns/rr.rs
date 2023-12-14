@@ -32,6 +32,8 @@ use super::{RcRf, VecRcRf};
 /// ```
 #[derive(Debug)]
 pub struct ResourceRecord {
+    all_length: usize,
+
     /// a domain name to which this resource record pertains.
     name: String,
 
@@ -72,18 +74,57 @@ impl ResourceRecord {
             ttl: 0,
             rdlength: 0,
             rdata: vec![],
+            all_length: 0,
         }
     }
 
     pub fn from(raw: &[u8]) -> Result<Self, Error> {
-        let mut rr = ResourceRecord {
-            name: todo!(),
-            typ: todo!(),
-            class: todo!(),
-            ttl: todo!(),
-            rdlength: todo!(),
-            rdata: todo!(),
-        };
+        let mut rr = Self::new();
+        let packet_err = Error::msg("parse rr failed cause the raw not completed");
+        match raw.iter().position(|&x| x == b'\x00') {
+            Some(pos) => {
+                // TODO: How to covert the name from [u8] correctly?
+                // rr.name = String::from_utf8(raw[..pos].to_vec())?;
+                if raw.len() < pos + 1 + 10 {
+                    return Err(packet_err);
+                }
+                rr.typ = u16::from_be_bytes(
+                    raw[pos..pos + 2]
+                        .try_into()
+                        .expect("slice with incorrent length"),
+                );
+                rr.class = u16::from_be_bytes(
+                    raw[pos + 2..pos + 4]
+                        .try_into()
+                        .expect("slice with incorrent length"),
+                );
+                rr.ttl = u32::from_be_bytes(
+                    raw[pos + 4..pos + 8]
+                        .try_into()
+                        .expect("slice with incorrent length"),
+                );
+                rr.rdlength = u16::from_be_bytes(
+                    raw[pos + 8..pos + 10]
+                        .try_into()
+                        .expect("slice with incorrent length"),
+                );
+
+                if raw.len() < pos + 1 + 10 + rr.rdlength as usize {
+                    return Err(packet_err);
+                }
+
+                rr.rdata = raw[pos + 10..pos + 10 + rr.rdlength as usize].to_vec();
+
+                rr.all_length = pos + 1 + 10 + rr.rdlength as usize;
+            }
+            None => return Err(packet_err),
+        }
+
+        Ok(rr)
+    }
+
+    pub fn all_length(&self) -> usize {
+        return self.all_length;
     }
 
     pub fn name(&self) -> &str {
