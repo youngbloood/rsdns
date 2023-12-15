@@ -2,7 +2,7 @@ use std::net::Ipv4Addr;
 
 use anyhow::Error;
 
-use super::{RcRf, VecRcRf};
+use super::{labels::Labels, RcRf, VecRcRf};
 
 /// The answer, authority, and additional sections all share the same
 /// format: a variable number of resource records, where the number of
@@ -78,49 +78,84 @@ impl ResourceRecord {
         }
     }
 
-    pub fn from(raw: &[u8]) -> Result<Self, Error> {
+    pub fn from(raw: &[u8], offset: &mut usize) -> Result<Self, Error> {
         let mut rr = Self::new();
         let packet_err = Error::msg("parse rr failed cause the raw not completed");
-        match raw.iter().position(|&x| x == b'\x00') {
-            Some(pos) => {
-                // TODO: How to covert the name from [u8] correctly?
-                // rr.name = String::from_utf8(raw[..pos].to_vec())?;
-                if raw.len() < pos + 1 + 10 {
-                    return Err(packet_err);
-                }
-                rr.typ = u16::from_be_bytes(
-                    raw[pos..pos + 2]
-                        .try_into()
-                        .expect("slice with incorrent length"),
-                );
-                rr.class = u16::from_be_bytes(
-                    raw[pos + 2..pos + 4]
-                        .try_into()
-                        .expect("slice with incorrent length"),
-                );
-                rr.ttl = u32::from_be_bytes(
-                    raw[pos + 4..pos + 8]
-                        .try_into()
-                        .expect("slice with incorrent length"),
-                );
-                rr.rdlength = u16::from_be_bytes(
-                    raw[pos + 8..pos + 10]
-                        .try_into()
-                        .expect("slice with incorrent length"),
-                );
 
-                if raw.len() < pos + 1 + 10 + rr.rdlength as usize {
-                    return Err(packet_err);
-                }
+        if *offset + 2 > raw.len() {
+            return Err(packet_err);
+        }
+        let (compressed_offset, is_compressed) = Self::is_compressed(
+            raw[*offset..*offset + 2]
+                .try_into()
+                .expect("judge the compressed failed"),
+        );
 
-                rr.rdata = raw[pos + 10..pos + 10 + rr.rdlength as usize].to_vec();
-
-                rr.all_length = pos + 1 + 10 + rr.rdlength as usize;
-            }
-            None => return Err(packet_err),
+        if is_compressed {
+            // parse domain_name from the pointer position, that point a labels start position
+            *offset += 2;
+            let mut domain_name_offset = compressed_offset;
+            let labels = Labels::from(raw, &mut domain_name_offset)?;
+            rr.name = labels.encode_to_str();
+        } else {
+            // parse domain_name from labels directly
+            let labels = Labels::from(raw, offset)?;
+            rr.name = labels.encode_to_str();
         }
 
+        // parse type
+        rr.typ = u16::from_be_bytes(
+            raw[*offset..*offset + 2]
+                .try_into()
+                .expect("slice with incorrent length"),
+        );
+        *offset += 2;
+
+        // parse class
+        rr.class = u16::from_be_bytes(
+            raw[*offset..*offset + 2]
+                .try_into()
+                .expect("slice with incorrent length"),
+        );
+        *offset += 2;
+
+        // parse ttl
+        rr.ttl = u32::from_be_bytes(
+            raw[*offset..*offset + 4]
+                .try_into()
+                .expect("slice with incorrent length"),
+        );
+        *offset += 4;
+
+        // parse rdlength
+        rr.rdlength = u16::from_be_bytes(
+            raw[*offset..*offset + 2]
+                .try_into()
+                .expect("slice with incorrent length"),
+        );
+        *offset += 2;
+
+        if *offset + rr.rdlength as usize > raw.len() {
+            return Err(packet_err);
+        }
+
+        // parse rdata
+        rr.rdata = raw[*offset..*offset + rr.rdlength as usize].to_vec();
+        *offset += rr.rdlength as usize;
+
         Ok(rr)
+    }
+
+    /// is_compressed judge the rrs weather use the compress.
+    /// if the third byte is zero and the first byte's first and second bit is 1, it represent compressed. or not
+    /// ref: https://www.rfc-editor.org/rfc/rfc1035#section-4.1.4
+    fn is_compressed(pointer: [u8; 2]) -> (usize, bool) {
+        let mut off = [pointer[0], pointer[1]];
+        off[0] &= 0b0011_1111;
+        return (
+            u16::from_be_bytes(off) as usize,
+            pointer[0] & 0b1100_0000 == 0b1100_0000,
+        );
     }
 
     pub fn all_length(&self) -> usize {
@@ -274,5 +309,18 @@ mod tests {
 
         rr.with_rdata(Ipv4Addr::new(10, 0, 0, 2));
         assert_eq!(vec![10_u8, 0, 0, 2], rr.rdata);
+    }
+
+    #[test]
+    pub fn test_rr_is_compressed() {
+        let cases = [([192_u8, 12], true, 12), ([6_u8, 13], false, 0)];
+
+        for cs in cases {
+            let (offset, is_compressed) = ResourceRecord::is_compressed(cs.0);
+            assert_eq!(cs.1, is_compressed);
+            if is_compressed {
+                assert_eq!(cs.2, offset);
+            }
+        }
     }
 }

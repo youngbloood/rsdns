@@ -22,9 +22,6 @@ contains QDCOUNT (usually 1) entries, each of the following format:
 */
 #[derive(Debug)]
 pub struct Question {
-    /// cache the question's length
-    length: usize,
-
     /**
     a domain name represented as a sequence of labels, where
     each label consists of a length octet followed by that
@@ -53,14 +50,13 @@ pub struct Question {
 impl Question {
     pub fn new() -> Self {
         Self {
-            length: 0,
             qname: Labels::new(),
             qtype: 0,
             qclass: 0,
         }
     }
 
-    pub fn from(raw: &[u8]) -> Result<Self, Error> {
+    pub fn from(raw: &[u8], offset: &mut usize) -> Result<Self, Error> {
         let pkg_err = Err(Error::msg("the question package not incomplete"));
         if raw.len() == 0 {
             return pkg_err;
@@ -70,20 +66,19 @@ impl Question {
             qname: Labels::new(),
             qtype: 0,
             qclass: 0,
-            length: 0,
         };
 
         // parse domain name
-        let domain_length = ques.qname.parse(&raw)?;
-        if raw.len() < 4 + domain_length {
+        ques.qname.parse(&raw, offset)?;
+        if *offset + 4 >= raw.len() {
             return pkg_err;
         }
         // parse qtype
-        ques.qtype = u16::from_be_bytes(raw[domain_length..domain_length + 2].try_into()?);
+        ques.qtype = u16::from_be_bytes(raw[*offset..*offset + 2].try_into()?);
+        *offset += 2;
         // parse qclass
-        ques.qclass = u16::from_be_bytes(raw[domain_length + 2..domain_length + 4].try_into()?);
-        // length
-        ques.length = domain_length + 4;
+        ques.qclass = u16::from_be_bytes(raw[*offset..*offset + 2].try_into()?);
+        *offset += 2;
 
         return Ok(ques);
     }
@@ -99,10 +94,6 @@ impl Question {
     pub fn with_name(&mut self, name: &str) -> &mut Self {
         self.qname.0.push(name.to_string());
         return self;
-    }
-
-    pub fn length(&self) -> usize {
-        return self.length;
     }
 
     pub fn qtype(&self) -> Type {
@@ -154,16 +145,20 @@ mod tests {
 
     #[test]
     pub fn test_question_from() {
+        let mut offset = 0;
         // correct
-        let mut ques = Question::from(&mut vec![
-            // google com
-            0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
-            // type & qclass
-            0x11, 0x22, 0x33, 0x44,
-        ]);
+        let mut ques = Question::from(
+            &mut vec![
+                // google com
+                0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
+                // type & qclass
+                0x11, 0x22, 0x33, 0x44,
+            ],
+            &mut offset,
+        );
         assert_eq!(true, ques.as_ref().is_ok());
+        assert_eq!(16, offset);
         assert_eq!(2, ques.as_mut().unwrap().qname().0.len());
-        assert_eq!(16, ques.as_ref().unwrap().length());
         assert_eq!("google", ques.as_mut().unwrap().qname().0.get(0).unwrap());
         assert_eq!("com", ques.as_mut().unwrap().qname().0.get(1).unwrap());
 
@@ -174,8 +169,10 @@ mod tests {
             // qtype & qclass; qclass miss a u8
             0x11, 0x22, 0x33,
         ];
+
         while raw.len() != 0 {
-            ques = Question::from(&mut raw);
+            let mut offset = 0;
+            ques = Question::from(&mut raw, &mut offset);
             assert_eq!(true, ques.is_err());
             raw.pop();
         }
@@ -190,7 +187,6 @@ mod tests {
             .extend_from_slice(&vec!["google".to_string(), "com".to_string()]);
         println!("labels = {:?}", &labels);
         let ques = Question {
-            length: 16,
             qname: labels,
             qtype: 4386,
             qclass: 13124,

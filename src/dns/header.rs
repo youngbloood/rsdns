@@ -39,8 +39,14 @@ impl Header {
         return hd;
     }
 
-    pub fn from(raw: [u8; 12]) -> Self {
-        return Header(raw);
+    pub fn from(raw: &[u8], offset: &mut usize) -> Self {
+        let hd = Header(
+            raw[*offset..*offset + 12]
+                .try_into()
+                .expect("faled to covert to header"),
+        );
+        *offset += 12;
+        return hd;
     }
 
     fn set_bit(&mut self, index: usize, pos: u8, val: u8) -> &mut Self {

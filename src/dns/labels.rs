@@ -13,49 +13,50 @@ impl Labels {
         Labels { 0: vec![] }
     }
 
-    pub fn parse(&mut self, raw: &[u8]) -> Result<usize, Error> {
-        match Self::from(raw) {
-            Ok((r, length)) => {
+    pub fn parse(&mut self, raw: &[u8], offset: &mut usize) -> Result<(), Error> {
+        match Self::from(raw, offset) {
+            Ok(r) => {
                 *self = r;
-                Ok(length)
+                Ok(())
             }
             Err(e) => Err(e),
         }
     }
 
-    pub fn from(raw: &[u8]) -> Result<(Self, usize), Error> {
+    pub fn from(raw: &[u8], offset: &mut usize) -> Result<Self, Error> {
         let mut label = Labels { 0: vec![] };
-        let mut iter = raw.as_ref().into_iter();
-        let mut start = 0_usize;
-        let mut all_length = 0;
+        let mut iter = raw[*offset..].as_ref().iter();
+        let mut start = *offset;
 
-        let label_err: Error = Error::msg("the question's label not incomplete");
+        let label_err: Error = Error::msg("the labels not incomplete");
 
         loop {
             let u = iter.next().unwrap_or(&('\x00' as u8));
             start += 1;
-            all_length += 1;
+            *offset += 1;
             if u.as_char().eq(&'\x00') {
                 break;
             }
 
             let mut length = *u as usize;
-            all_length += length;
+            *offset += length;
 
-            if start + length >= raw.len() {
+            if *offset >= raw.len() {
                 return Err(label_err);
             }
             label
                 .0
                 .push(String::from_utf8(raw[start..start + length].to_vec()).unwrap());
+
+            // TODO: use skip
             while length > 0 {
                 iter.next();
-                start += 1;
                 length -= 1;
+                start += 1;
             }
         }
 
-        Ok((label, all_length))
+        Ok(label)
     }
 
     pub fn encode_to_str(&self) -> String {
@@ -68,27 +69,29 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_labels_parse() {
-        let mut label = Labels::new();
-        let r = label.parse(
+    fn test_labels_from() {
+        let mut offset = 0_usize;
+        let label = Labels::from(
             &vec![
                 // google com
                 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d, 0x00,
             ]
             .to_vec(),
+            &mut offset,
         );
-        assert_eq!(true, r.is_ok());
-        assert_eq!(12, r.unwrap());
-        assert_eq!("google", label.0.get(0).unwrap());
-        assert_eq!("com", label.0.get(1).unwrap());
+        assert_eq!(true, label.is_ok());
+        assert_eq!("google", label.as_ref().unwrap().0.get(0).unwrap());
+        assert_eq!("com", label.as_ref().unwrap().0.get(1).unwrap());
 
-        let r = label.parse(
+        let mut offset = 0_usize;
+        let label = Labels::from(
             &vec![
                 // google com
                 0x06, 0x67, 0x6f, 0x6f, 0x67, 0x6c, 0x65, 0x03, 0x63, 0x6f, 0x6d,
             ]
             .to_vec(),
+            &mut offset,
         );
-        assert_eq!(false, r.is_ok());
+        assert_eq!(false, label.is_ok());
     }
 }
