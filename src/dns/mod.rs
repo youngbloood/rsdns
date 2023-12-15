@@ -2,6 +2,7 @@ pub mod dns;
 pub mod header;
 pub mod labels;
 pub mod question;
+pub mod rdata;
 pub mod rr;
 
 use std::{cell::RefCell, rc::Rc};
