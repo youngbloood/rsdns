@@ -1,3 +1,5 @@
+use crate::util;
+
 use super::{
     labels::Labels,
     rdata::{RDataOperation, RDataType},
@@ -86,7 +88,7 @@ impl ResourceRecord {
         if *offset + 2 > raw.len() {
             return Err(packet_err);
         }
-        let (compressed_offset, is_compressed) = Self::is_compressed(
+        let (compressed_offset, is_compressed) = util::is_compressed(
             raw[*offset..*offset + 2]
                 .try_into()
                 .expect("judge the compressed failed"),
@@ -146,18 +148,6 @@ impl ResourceRecord {
         *offset += rr.rdlength as usize;
 
         Ok(rr)
-    }
-
-    /// is_compressed judge the rrs weather use the compress.
-    /// if the third byte is zero and the first byte's first and second bit is 1, it represent compressed. or not
-    /// ref: https://www.rfc-editor.org/rfc/rfc1035#section-4.1.4
-    fn is_compressed(pointer: [u8; 2]) -> (usize, bool) {
-        let mut off = [pointer[0], pointer[1]];
-        off[0] &= 0b0011_1111;
-        return (
-            u16::from_be_bytes(off) as usize,
-            pointer[0] & 0b1100_0000 == 0b1100_0000,
-        );
     }
 
     pub fn all_length(&self) -> usize {
@@ -324,7 +314,7 @@ mod tests {
         let cases = [([192_u8, 12], true, 12), ([6_u8, 13], false, 0)];
 
         for cs in cases {
-            let (offset, is_compressed) = ResourceRecord::is_compressed(cs.0);
+            let (offset, is_compressed) = util::is_compressed(cs.0);
             assert_eq!(cs.1, is_compressed);
             if is_compressed {
                 assert_eq!(cs.2, offset);
