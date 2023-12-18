@@ -22,22 +22,22 @@ the description of name server logic in [RFC-1034] for details.
 */
 
 #[derive(Debug)]
-pub struct CNAME(String);
+pub struct CName(String);
 
-impl CNAME {
+impl CName {
     pub fn from(raw: &[u8]) -> Result<Self, Error> {
-        Ok(CNAME {
+        Ok(CName {
             0: String::from_utf8(raw.to_vec())?,
         })
     }
 }
 
-impl RDataOperation for CNAME {
-    fn decode(&self) -> Vec<String> {
-        return vec![self.0.clone()];
+impl RDataOperation for CName {
+    fn decode(&self) -> Vec<Vec<u8>> {
+        return vec![self.0.as_bytes().to_vec()];
     }
 
     fn encode(&self) -> Vec<u8> {
-        return self.0.clone().into_bytes();
+        return self.0.as_bytes().to_vec();
     }
 }

@@ -44,3 +44,29 @@ WKS RRs cause no additional section processing.
 In master files, both ports and protocols are expressed using mnemonics
 or decimal numbers.
  */
+
+use std::net::Ipv4Addr;
+
+use super::RDataOperation;
+
+#[derive(Debug)]
+pub struct WKS {
+    /// An 32 bit Internet address
+    addr: Ipv4Addr,
+
+    /// An 8 bit IP protocol number
+    protocol: u8,
+
+    /// A variable length bit map.  The bit map must be a multiple of 8 bits long.
+    bit_map: Vec<u8>,
+}
+
+impl RDataOperation for WKS {
+    fn decode(&self) -> Vec<Vec<u8>> {
+        todo!()
+    }
+
+    fn encode(&self) -> Vec<u8> {
+        todo!()
+    }
+}

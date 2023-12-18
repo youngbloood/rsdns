@@ -1,11 +1,9 @@
-use anyhow::Error;
-use std::{any::TypeId, net::Ipv4Addr};
-
 use super::{
     labels::Labels,
-    rdata::{RData, RDataOperation},
+    rdata::{RDataOperation, RDataType},
     Class, RcRf, Type, VecRcRf,
 };
+use anyhow::Error;
 
 /// The answer, authority, and additional sections all share the same
 /// format: a variable number of resource records, where the number of
@@ -65,7 +63,7 @@ pub struct ResourceRecord {
     /// according to the TYPE and CLASS of the resource record.
     /// For example, the if the TYPE is A and the CLASS is IN,
     /// the RDATA field is a 4 octet ARPA Internet address.
-    rdata: RData,
+    rdata: RDataType,
 }
 
 impl ResourceRecord {
@@ -76,7 +74,7 @@ impl ResourceRecord {
             class: 0,
             ttl: 0,
             rdlength: 0,
-            rdata: RData::new(),
+            rdata: RDataType::new(),
             all_length: 0,
         }
     }
@@ -144,10 +142,7 @@ impl ResourceRecord {
 
         // parse rdata
         // rr.rdata = raw[*offset..*offset + rr.rdlength as usize].to_vec();
-        rr.rdata = RData::from(
-            raw[*offset..*offset + rr.rdlength as usize].to_vec(),
-            rr.typ,
-        )?;
+        rr.rdata = RDataType::from(raw, &raw[*offset..*offset + rr.rdlength as usize], rr.typ)?;
         *offset += rr.rdlength as usize;
 
         Ok(rr)
@@ -209,10 +204,10 @@ impl ResourceRecord {
     //     return Ipv4Addr::from(&self.rdata);
     // }
 
-    pub fn with_rdata(&mut self, resource: Box<dyn RDataOperation>) -> &mut Self {
-        let mut rdate = RData::new();
-        rdate.with_resource(resource);
-        self.rdata = rdate;
+    pub fn with_rdata(&mut self, resource: RDataType) -> &mut Self {
+        // let mut rdate = RDataType::new();
+        // rdate.with_resource(resource);
+        self.rdata = resource;
         return self;
     }
 
@@ -232,13 +227,13 @@ impl ResourceRecord {
         result.extend_from_slice(&self.ttl.to_be_bytes());
         // encode length
         result.extend_from_slice(&self.rdlength.to_be_bytes());
-        // encode data
+        // encode rdata
         result.extend_from_slice(&self.rdata.encode());
 
         result
     }
 
-    pub fn rdata(&self) -> &RData {
+    pub fn rdata(&self) -> &RDataType {
         &self.rdata
     }
 }
