@@ -30,10 +30,17 @@ pub struct A(Ipv4Addr);
 
 impl A {
     pub fn from(raw: &[u8]) -> Result<Self, Error> {
-        let a = A { 0: todo!() };
+        if raw.len() < 4 {
+            return Err(Error::msg("not completed ip data"));
+        }
+
+        let a = A {
+            0: Ipv4Addr::new(raw[0], raw[1], raw[2], raw[3]),
+        };
         Ok(a)
     }
 }
+
 impl RDataOperation for A {
     fn decode(&self) -> Vec<Vec<u8>> {
         return vec![self.0.octets().to_vec()];

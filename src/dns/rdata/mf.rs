@@ -22,3 +22,27 @@ the new scheme.  The recommended policy for dealing with MD RRs found in
 a master file is to reject them, or to convert them to MX RRs with a
 preference of 10.
  */
+
+use super::RDataOperation;
+use anyhow::Error;
+
+#[derive(Debug)]
+pub struct MF(String);
+
+impl MF {
+    pub fn from(raw: &[u8]) -> Result<Self, Error> {
+        Ok(MF {
+            0: String::from_utf8(raw.to_vec())?,
+        })
+    }
+}
+
+impl RDataOperation for MF {
+    fn decode(&self) -> Vec<Vec<u8>> {
+        return vec![self.0.as_bytes().to_vec()];
+    }
+
+    fn encode(&self) -> Vec<u8> {
+        return self.0.as_bytes().to_vec();
+    }
+}

@@ -88,11 +88,8 @@ impl ResourceRecord {
         if *offset + 2 > raw.len() {
             return Err(packet_err);
         }
-        let (compressed_offset, is_compressed) = util::is_compressed(
-            raw[*offset..*offset + 2]
-                .try_into()
-                .expect("judge the compressed failed"),
-        );
+        let (compressed_offset, is_compressed) =
+            util::is_compressed_wrap(&raw[*offset..*offset + 2]);
 
         if is_compressed {
             // parse domain_name from the pointer position, that point a labels start position

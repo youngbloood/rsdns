@@ -47,6 +47,8 @@ or decimal numbers.
 
 use std::net::Ipv4Addr;
 
+use anyhow::Error;
+
 use super::RDataOperation;
 
 #[derive(Debug)]
@@ -61,12 +63,30 @@ pub struct WKS {
     bit_map: Vec<u8>,
 }
 
+impl WKS {
+    pub fn from(raw: &[u8]) -> Result<Self, Error> {
+        let wks = WKS {
+            addr: todo!(),
+            protocol: todo!(),
+            bit_map: todo!(),
+        };
+        Ok(wks)
+    }
+}
+
 impl RDataOperation for WKS {
     fn decode(&self) -> Vec<Vec<u8>> {
-        todo!()
+        return vec![
+            self.addr.octets().to_vec(),
+            vec![self.protocol],
+            self.bit_map.to_vec(),
+        ];
     }
 
     fn encode(&self) -> Vec<u8> {
-        todo!()
+        let mut r = self.addr.octets().to_vec();
+        r.push(self.protocol);
+        r.extend_from_slice(&self.bit_map.to_vec());
+        return r;
     }
 }

@@ -24,6 +24,8 @@ when talking between machines or operating systems of the same type.
 
 use anyhow::Error;
 
+use crate::dns::rdata::parse_charactor_string;
+
 use super::RDataOperation;
 
 #[derive(Debug)]
@@ -37,7 +39,18 @@ pub struct HInfo {
 
 impl HInfo {
     pub fn from(raw: &[u8]) -> Result<Self, Error> {
-        todo!()
+        let list = parse_charactor_string(raw)?;
+        let mut hinfo = HInfo {
+            cpu: "".to_string(),
+            os: "".to_string(),
+        };
+        if list.len() < 2 {
+            return Err(Error::msg("not completed hinfo"));
+        }
+        hinfo.cpu = String::from_utf8(list.get(0).unwrap().to_vec())?;
+        hinfo.os = String::from_utf8(list.get(1).unwrap().to_vec())?;
+
+        return Ok(hinfo);
     }
 }
 

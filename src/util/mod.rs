@@ -9,3 +9,10 @@ pub fn is_compressed(pointer: [u8; 2]) -> (usize, bool) {
         pointer[0] & 0b1100_0000 == 0b1100_0000,
     );
 }
+
+pub fn is_compressed_wrap(raw: &[u8]) -> (usize, bool) {
+    if raw.len() < 2 {
+        return (0, false);
+    }
+    return is_compressed(raw[..2].try_into().expect("get the compressed pointer"));
+}
