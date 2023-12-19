@@ -198,26 +198,25 @@ impl ResourceRecord {
         return self;
     }
 
-    pub fn encode(&self) -> Vec<u8> {
-        let mut result = Vec::<u8>::new();
+    pub fn encode(&self, raw: &mut Vec<u8>, is_compressed: bool) -> Result<(), Error> {
         // encode names
         for v in self.name.as_bytes() {
-            result.push(*v);
+            raw.push(*v);
         }
-        result.push(b'\x00');
+        raw.push(b'\x00');
 
         // encode type
-        result.extend_from_slice(&self.typ.to_be_bytes());
+        raw.extend_from_slice(&self.typ.to_be_bytes());
         // encode class
-        result.extend_from_slice(&self.class.to_be_bytes());
+        raw.extend_from_slice(&self.class.to_be_bytes());
         // encode class
-        result.extend_from_slice(&self.ttl.to_be_bytes());
+        raw.extend_from_slice(&self.ttl.to_be_bytes());
         // encode length
-        result.extend_from_slice(&self.rdlength.to_be_bytes());
+        raw.extend_from_slice(&self.rdlength.to_be_bytes());
         // encode rdata
-        result.extend_from_slice(&self.rdata.encode());
+        self.rdata.encode(raw, is_compressed)?;
 
-        result
+        Ok(())
     }
 
     pub fn rdata(&self) -> &RDataType {
@@ -241,15 +240,13 @@ impl RRs {
         self.0.push(rr);
     }
 
-    pub fn encode(&self) -> Vec<u8> {
-        let mut result = Vec::<u8>::new();
-
+    pub fn encode(&self, raw: &mut Vec<u8>, is_compressed: bool) -> Result<(), Error> {
         for rr in &self.0 {
             // encode names
-            result.extend_from_slice(&rr.clone().borrow().encode());
+            rr.clone().borrow().encode(raw, is_compressed)?
         }
 
-        return result;
+        Ok(())
     }
 }
 

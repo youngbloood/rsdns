@@ -17,7 +17,7 @@ choose to restart the query at the canonical name in certain cases.  See
 the description of name server logic in [RFC-1034] for details.
 */
 
-use super::RDataOperation;
+use super::{encode_domain_name_wrap, RDataOperation};
 use crate::{dns::labels::Labels, util};
 use anyhow::Error;
 
@@ -48,7 +48,11 @@ impl RDataOperation for CName {
         Ok(())
     }
 
-    fn encode(&self) -> Vec<u8> {
-        self.0.as_bytes().to_vec()
+    fn encode(&self, raw: &mut Vec<u8>, is_compressed: bool) -> Result<(), Error> {
+        raw.extend_from_slice(
+            &encode_domain_name_wrap(self.0.as_str(), raw, is_compressed).to_vec(),
+        );
+
+        Ok(())
     }
 }

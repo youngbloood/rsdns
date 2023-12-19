@@ -25,7 +25,7 @@ hosts which are name servers for either Internet (IN) or Hesiod (HS)
 class information are normally queried using IN class protocols.
  */
 
-use super::RDataOperation;
+use super::{encode_domain_name_wrap, RDataOperation};
 use crate::{dns::labels::Labels, util};
 use anyhow::Error;
 
@@ -56,7 +56,11 @@ impl RDataOperation for NS {
         Ok(())
     }
 
-    fn encode(&self) -> Vec<u8> {
-        self.0.as_bytes().to_vec()
+    fn encode(&self, raw: &mut Vec<u8>, is_compressed: bool) -> Result<(), Error> {
+        raw.extend_from_slice(
+            &encode_domain_name_wrap(self.0.as_str(), raw, is_compressed).to_vec(),
+        );
+
+        Ok(())
     }
 }

@@ -89,10 +89,11 @@ impl RDataOperation for WKS {
         Ok(())
     }
 
-    fn encode(&self) -> Vec<u8> {
-        let mut r = self.addr.octets().to_vec();
-        r.push(self.protocol);
-        r.extend_from_slice(&self.bit_map.to_vec());
-        return r;
+    fn encode(&self, raw: &mut Vec<u8>, _is_compressed: bool) -> Result<(), Error> {
+        raw.extend_from_slice(&self.addr.octets());
+        raw.push(self.protocol);
+        raw.extend_from_slice(&self.bit_map);
+
+        Ok(())
     }
 }

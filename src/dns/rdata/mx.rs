@@ -24,7 +24,7 @@ specified by EXCHANGE.  The use of MX RRs is explained in detail in
 [RFC-974].
  */
 
-use super::RDataOperation;
+use super::{encode_domain_name_wrap, RDataOperation};
 use crate::{dns::labels::Labels, util};
 use anyhow::Error;
 
@@ -63,11 +63,12 @@ impl RDataOperation for MX {
         Ok(())
     }
 
-    fn encode(&self) -> Vec<u8> {
-        let mut r = vec![];
-        r.extend_from_slice(&self.preference.to_be_bytes());
-        r.extend_from_slice(self.exchange.as_bytes());
+    fn encode(&self, raw: &mut Vec<u8>, is_compressed: bool) -> Result<(), Error> {
+        raw.extend_from_slice(&self.preference.to_be_bytes());
+        raw.extend_from_slice(
+            &encode_domain_name_wrap(self.exchange.as_str(), raw, is_compressed).to_vec(),
+        );
 
-        r
+        Ok(())
     }
 }

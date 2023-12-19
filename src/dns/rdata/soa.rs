@@ -68,7 +68,7 @@ reason for this provison is to allow future dynamic update facilities to
 change the SOA RR with known semantics.
  */
 
-use super::RDataOperation;
+use super::{encode_domain_name_wrap, RDataOperation};
 use crate::{
     dns::{labels::Labels, rdata::ERR_RDATE_MSG},
     util,
@@ -160,7 +160,19 @@ impl RDataOperation for SOA {
         Ok(())
     }
 
-    fn encode(&self) -> Vec<u8> {
-        todo!()
+    fn encode(&self, raw: &mut Vec<u8>, is_compressed: bool) -> Result<(), Error> {
+        raw.extend_from_slice(
+            &encode_domain_name_wrap(self.mname.as_str(), raw, is_compressed).to_vec(),
+        );
+        raw.extend_from_slice(
+            &encode_domain_name_wrap(self.rname.as_str(), raw, is_compressed).to_vec(),
+        );
+        raw.extend_from_slice(&self.serial.to_be_bytes());
+        raw.extend_from_slice(&self.refresh.to_be_bytes());
+        raw.extend_from_slice(&self.retry.to_be_bytes());
+        raw.extend_from_slice(&self.expire.to_be_bytes());
+        raw.extend_from_slice(&self.minimum.to_be_bytes());
+
+        Ok(())
     }
 }

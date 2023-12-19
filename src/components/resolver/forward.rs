@@ -49,7 +49,7 @@ impl ForwardOperation for DefaultForward {
                     .connect(&self.target)
                     .expect("connect to google dns failed");
 
-                socket.send(&dns.encode()).expect("query dns failed");
+                socket.send(&dns.encode(false)?).expect("query dns failed");
 
                 let mut buff = [0u8; 512];
                 let (data_len, _) = socket.recv_from(&mut buff)?;
@@ -76,7 +76,7 @@ mod tests {
         dns.with_ques("google.com", dns::TYPE_MX, dns::CLASS_IN);
         dns.with_ques("baidu.com", dns::TYPE_MX, dns::CLASS_IN);
         dns.head().with_rd(true);
-        println!("dns1 = {:?}", &dns.encode());
+        println!("dns1 = {:?}", &dns.encode(false));
 
         let mut fwd: DefaultForward = DefaultForward::new();
         fwd.with_target("8.8.8.8:53").with_protocol("udp");

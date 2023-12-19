@@ -19,7 +19,7 @@ similar to that performed by CNAME, which identifies aliases.  See the
 description of the IN-ADDR.ARPA domain for an example.
  */
 
-use super::RDataOperation;
+use super::{encode_domain_name_wrap, RDataOperation};
 use crate::{dns::labels::Labels, util};
 use anyhow::Error;
 
@@ -50,7 +50,11 @@ impl RDataOperation for PTR {
         Ok(())
     }
 
-    fn encode(&self) -> Vec<u8> {
-        self.0.as_bytes().to_vec()
+    fn encode(&self, raw: &mut Vec<u8>, is_compressed: bool) -> Result<(), Error> {
+        raw.extend_from_slice(
+            &encode_domain_name_wrap(self.0.as_str(), raw, is_compressed).to_vec(),
+        );
+
+        Ok(())
     }
 }

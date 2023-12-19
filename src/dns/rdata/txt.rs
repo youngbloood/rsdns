@@ -37,7 +37,9 @@ impl RDataOperation for TXT {
         Ok(())
     }
 
-    fn encode(&self) -> Vec<u8> {
-        self.0.as_bytes().to_vec()
+    fn encode(&self, raw: &mut Vec<u8>, _is_compressed: bool) -> Result<(), Error> {
+        raw.extend_from_slice(self.0.as_bytes());
+
+        Ok(())
     }
 }

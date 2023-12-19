@@ -36,7 +36,7 @@ use anyhow::Error;
 
 use crate::{dns::labels::Labels, util};
 
-use super::RDataOperation;
+use super::{encode_domain_name_wrap, RDataOperation};
 
 #[derive(Debug)]
 pub struct MInfo {
@@ -78,11 +78,14 @@ impl RDataOperation for MInfo {
         Ok(())
     }
 
-    fn encode(&self) -> Vec<u8> {
-        let mut r = vec![];
-        r.extend_from_slice(self.rmail_bx.as_bytes());
-        r.extend_from_slice(self.email_bx.as_bytes());
+    fn encode(&self, raw: &mut Vec<u8>, is_compressed: bool) -> Result<(), Error> {
+        raw.extend_from_slice(
+            &encode_domain_name_wrap(self.rmail_bx.as_str(), raw, is_compressed).to_vec(),
+        );
+        raw.extend_from_slice(
+            &encode_domain_name_wrap(self.email_bx.as_str(), raw, is_compressed).to_vec(),
+        );
 
-        r
+        Ok(())
     }
 }

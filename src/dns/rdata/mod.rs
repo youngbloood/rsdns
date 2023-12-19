@@ -54,7 +54,7 @@ pub trait RDataOperation: Debug {
     fn decode(&mut self, raw: &[u8], rdata: &[u8]) -> Result<(), Error>;
 
     /// encode: encode the concrete rdata object to u8 slice.
-    fn encode(&self) -> Vec<u8>;
+    fn encode(&self, raw: &mut Vec<u8>, is_compressed: bool) -> Result<(), Error>;
 }
 
 /**
@@ -132,8 +132,26 @@ impl RDataOperation for RDataType {
         }
     }
 
-    fn encode(&self) -> Vec<u8> {
-        todo!()
+    fn encode(&self, raw: &mut Vec<u8>, is_compressed: bool) -> Result<(), Error> {
+        match self {
+            RDataType::CName(cname) => cname.encode(raw, is_compressed),
+            RDataType::HInfo(hinfo) => hinfo.encode(raw, is_compressed),
+            RDataType::MB(mb) => mb.encode(raw, is_compressed),
+            RDataType::MD(md) => md.encode(raw, is_compressed),
+            RDataType::MF(mf) => mf.encode(raw, is_compressed),
+            RDataType::MG(mg) => mg.encode(raw, is_compressed),
+            RDataType::MInfo(minfo) => minfo.encode(raw, is_compressed),
+            RDataType::MR(mr) => mr.encode(raw, is_compressed),
+            RDataType::MX(mx) => mx.encode(raw, is_compressed),
+            RDataType::Null(null) => null.encode(raw, is_compressed),
+            RDataType::NS(ns) => ns.encode(raw, is_compressed),
+            RDataType::PTR(ptr) => ptr.encode(raw, is_compressed),
+            RDataType::SOA(soa) => soa.encode(raw, is_compressed),
+            RDataType::TXT(txt) => txt.encode(raw, is_compressed),
+            RDataType::A(a) => a.encode(raw, is_compressed),
+            RDataType::WKS(wks) => wks.encode(raw, is_compressed),
+            _ => bail!(ERR_RDATE_TYPE),
+        }
     }
 }
 
@@ -163,6 +181,33 @@ pub fn parse_domain_name(raw: &[u8], _rdata: &[u8]) -> Result<Labels, Error> {
     let mut offset = 0;
 
     Ok(Labels::from(_rdata, &mut offset)?)
+}
+
+/// encode_domain_name_wrap
+pub fn encode_domain_name_wrap(domain_name: &str, raw: &[u8], is_compressed: bool) -> Vec<u8> {
+    let encoded = encode_domain_name(domain_name);
+
+    if is_compressed {
+        todo!("find the sub string in raw and return the pos")
+    }
+
+    return encoded;
+}
+
+/// encode domain name
+pub fn encode_domain_name(domain_name: &str) -> Vec<u8> {
+    let mut r: Vec<u8> = vec![];
+
+    let mut names = domain_name.split(".").into_iter();
+    let mut iter = names.next();
+    while iter.is_some() {
+        r.push(iter.unwrap().len() as u8);
+        r.extend_from_slice(&iter.unwrap().as_bytes().to_vec());
+        iter = names.next();
+    }
+    r.push(b'\x00');
+
+    r
 }
 // /**
 // RDate define the RDate structure

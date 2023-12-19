@@ -125,7 +125,7 @@ impl DNS {
         self.additional.extend(ar);
     }
 
-    pub fn encode(&mut self) -> Vec<u8> {
+    pub fn encode(&mut self, is_compressed: bool) -> Result<Vec<u8>, Error> {
         let mut result = Vec::<u8>::new();
 
         self.head.with_qdcount(self.ques.len() as u16);
@@ -138,11 +138,11 @@ impl DNS {
             result.extend_from_slice(&ques.encode());
         }
 
-        result.extend_from_slice(&self.answers.encode());
-        result.extend_from_slice(&self.authority.encode());
-        result.extend_from_slice(&self.additional.encode());
+        self.answers.encode(&mut result, is_compressed)?;
+        self.authority.encode(&mut result, is_compressed)?;
+        self.additional.encode(&mut result, is_compressed)?;
 
-        return result;
+        return Ok(result);
     }
 }
 

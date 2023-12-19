@@ -59,10 +59,10 @@ impl RDataOperation for HInfo {
         Ok(())
     }
 
-    fn encode(&self) -> Vec<u8> {
-        let mut v = self.cpu.as_bytes().to_vec();
-        v.extend_from_slice(self.os.as_bytes());
+    fn encode(&self, raw: &mut Vec<u8>, _is_compressed: bool) -> Result<(), Error> {
+        raw.extend_from_slice(self.cpu.as_bytes());
+        raw.extend_from_slice(self.os.as_bytes());
 
-        v
+        Ok(())
     }
 }

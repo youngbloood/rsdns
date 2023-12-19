@@ -18,7 +18,7 @@ is as a forwarding entry for a user who has moved to a different
 mailbox.
  */
 
-use super::RDataOperation;
+use super::{encode_domain_name_wrap, RDataOperation};
 use crate::{dns::labels::Labels, util};
 use anyhow::Error;
 
@@ -49,7 +49,11 @@ impl RDataOperation for MR {
         Ok(())
     }
 
-    fn encode(&self) -> Vec<u8> {
-        self.0.as_bytes().to_vec()
+    fn encode(&self, raw: &mut Vec<u8>, is_compressed: bool) -> Result<(), Error> {
+        raw.extend_from_slice(
+            &encode_domain_name_wrap(self.0.as_str(), raw, is_compressed).to_vec(),
+        );
+
+        Ok(())
     }
 }
