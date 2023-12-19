@@ -66,25 +66,25 @@ impl DNS {
         };
 
         // parse question
-        for i in 0..dns.head.qdcount() {
+        for _i in 0..dns.head.qdcount() {
             let ques = Question::from(&_raw, &mut offset)?;
             dns.ques.push(ques);
         }
 
         // parse anwer
-        for i in 0..dns.head.ancount() {
+        for _i in 0..dns.head.ancount() {
             let rr = ResourceRecord::from(&_raw, &mut offset)?;
             dns.answers.0.push(Rc::new(RefCell::new(rr)));
         }
 
         // parse authority
-        for i in 0..dns.head.nscount() {
+        for _i in 0..dns.head.nscount() {
             let rr = ResourceRecord::from(&_raw, &mut offset)?;
             dns.answers.0.push(Rc::new(RefCell::new(rr)));
         }
 
         // parse additional
-        for i in 0..dns.head.arcount() {
+        for _i in 0..dns.head.arcount() {
             let rr = ResourceRecord::from(&_raw, &mut offset)?;
             dns.answers.0.push(Rc::new(RefCell::new(rr)));
         }
@@ -148,9 +148,6 @@ impl DNS {
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::BorrowMut;
-
-    use super::*;
     use crate::DNS;
 
     #[test]

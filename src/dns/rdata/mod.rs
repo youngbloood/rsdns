@@ -21,15 +21,29 @@ mod mf;
 mod mg;
 mod minfo;
 mod wks;
-use crate::util;
 
 use self::{a::A, cname::CName, hinfo::HInfo, mb::MB, md::MD, mf::MF, mg::MG, minfo::MInfo};
-use super::{labels::Labels, Type, TYPE_CNAME, TYPE_HINFO, TYPE_MB, TYPE_MD, TYPE_MINFO};
-use anyhow::Error;
+use super::{
+    labels::Labels, Type, TYPE_A, TYPE_CNAME, TYPE_HINFO, TYPE_MB, TYPE_MD, TYPE_MF, TYPE_MG,
+    TYPE_MINFO,
+};
+use crate::util;
+use anyhow::{bail, Error};
 use std::fmt::Debug;
 
+const ERR_RDATE_MSG: &str = "not completed rdate";
+const ERR_RDATE_TYPE: &str = "not standard rdata type";
+
+/**
+   RDateOperation contains decode and encod
+   decode: decode the radate that u8 slice to the concrete rdata object.
+   encode: encode the concrete rdata object to u8 slice.
+*/
 pub trait RDataOperation: Debug {
-    fn decode(&self) -> Vec<Vec<u8>>;
+    /// decode: decode the radate that u8 slice to the concrete rdata object.
+    fn decode(&mut self, raw: &[u8], rdata: &[u8]) -> Result<(), Error>;
+
+    /// encode: encode the concrete rdata object to u8 slice.
     fn encode(&self) -> Vec<u8>;
 }
 
@@ -56,59 +70,31 @@ impl RDataType {
 
     pub fn from(raw: &[u8], _rdata: &[u8], typ: Type) -> Result<Self, Error> {
         match typ {
-            TYPE_A => {
-                return Ok(RDataType::A(A::from(_rdata)?));
-            }
-
-            TYPE_CNAME => {
-                let labels = parse_domain_name(raw, _rdata)?;
-                return Ok(RDataType::CName(CName::from(
-                    labels.encode_to_str().as_bytes(),
-                )?));
-            }
-
-            TYPE_HINFO => Ok(RDataType::HInfo(HInfo::from(_rdata)?)),
-
-            TYPE_MB => {
-                let labels = parse_domain_name(raw, _rdata)?;
-                return Ok(RDataType::MB(MB::from(labels.encode_to_str().as_bytes())?));
-            }
-
-            TYPE_MD => {
-                let labels = parse_domain_name(raw, _rdata)?;
-                return Ok(RDataType::MD(MD::from(labels.encode_to_str().as_bytes())?));
-            }
-
-            TYPE_MF => {
-                let labels = parse_domain_name(raw, _rdata)?;
-                return Ok(RDataType::MF(MF::from(labels.encode_to_str().as_bytes())?));
-            }
-
-            TYPE_MG => {
-                let labels = parse_domain_name(raw, _rdata)?;
-                return Ok(RDataType::MG(MG::from(labels.encode_to_str().as_bytes())?));
-            }
-
-            TYPE_MINFO => {
-                let labels = parse_domain_name(raw, _rdata)?;
-                return Ok(RDataType::MG(MG::from(labels.encode_to_str().as_bytes())?));
-            }
+            TYPE_A => Ok(RDataType::A(A::from(raw, _rdata)?)),
+            TYPE_CNAME => Ok(RDataType::CName(CName::from(raw, _rdata)?)),
+            TYPE_HINFO => Ok(RDataType::HInfo(HInfo::from(raw, _rdata)?)),
+            TYPE_MB => Ok(RDataType::MB(MB::from(raw, _rdata)?)),
+            TYPE_MD => Ok(RDataType::MD(MD::from(raw, _rdata)?)),
+            TYPE_MF => Ok(RDataType::MF(MF::from(raw, _rdata)?)),
+            TYPE_MG => Ok(RDataType::MG(MG::from(raw, _rdata)?)),
+            TYPE_MINFO => Ok(RDataType::MG(MG::from(raw, _rdata)?)),
+            _ => todo!(),
         }
     }
 }
 
 impl RDataOperation for RDataType {
-    fn decode(&self) -> Vec<Vec<u8>> {
+    fn decode(&mut self, raw: &[u8], rdata: &[u8]) -> Result<(), Error> {
         match self {
-            RDataType::None => vec![],
-            RDataType::A(a) => a.decode(),
-            RDataType::CName(cname) => cname.decode(),
-            RDataType::HInfo(hinfo) => hinfo.decode(),
-            RDataType::MB(mb) => mb.decode(),
-            RDataType::MD(md) => md.decode(),
-            RDataType::MF(mf) => mf.decode(),
-            RDataType::MG(mg) => mg.decode(),
-            RDataType::MInfo(minfo) => minfo.decode(),
+            RDataType::None => bail!(ERR_RDATE_TYPE),
+            RDataType::A(a) => a.decode(raw, rdata),
+            RDataType::CName(cname) => cname.decode(raw, rdata),
+            RDataType::HInfo(hinfo) => hinfo.decode(raw, rdata),
+            RDataType::MB(mb) => mb.decode(raw, rdata),
+            RDataType::MD(md) => md.decode(raw, rdata),
+            RDataType::MF(mf) => mf.decode(raw, rdata),
+            RDataType::MG(mg) => mg.decode(raw, rdata),
+            RDataType::MInfo(minfo) => minfo.decode(raw, rdata),
         }
     }
 

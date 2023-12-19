@@ -1,6 +1,4 @@
 use rand::Rng;
-use std::ops;
-
 use rsbit::BitOperation;
 
 /**
@@ -24,7 +22,6 @@ The header contains the following fields:
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 ```
  */
-
 #[derive(Debug)]
 pub struct Header([u8; 12]);
 

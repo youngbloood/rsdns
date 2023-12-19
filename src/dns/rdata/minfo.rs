@@ -45,35 +45,37 @@ pub struct MInfo {
 }
 
 impl MInfo {
-    pub fn from(raw: &[u8], _rdata: &[u8]) -> Result<Self, Error> {
-        let getv = |mut offset: &mut usize| -> Result<Labels, Error> {
-            if *offset > _rdata.len() {
-                return Err(Error::msg("not completed labels"));
-            }
-            let (mut compressed_offset, is_compressed) =
-                util::is_compressed_wrap(&_rdata[*offset..]);
-            if is_compressed {
-                *offset += 2;
-                return Ok(Labels::from(raw, &mut compressed_offset)?);
-            }
-            return Ok(Labels::from(_rdata, &mut offset)?);
+    pub fn from(raw: &[u8], rdata: &[u8]) -> Result<Self, Error> {
+        let mut minfo = Self {
+            rmail_bx: "".to_string(),
+            email_bx: "".to_string(),
         };
+        minfo.decode(raw, rdata)?;
 
-        let mut offset = 0_usize;
-
-        Ok(Self {
-            rmail_bx: getv(&mut offset)?.encode_to_str(),
-            email_bx: getv(&mut offset)?.encode_to_str(),
-        })
+        Ok(minfo)
     }
 }
 
 impl RDataOperation for MInfo {
-    fn decode(&self) -> Vec<Vec<u8>> {
-        return vec![
-            self.rmail_bx.as_bytes().to_vec(),
-            self.email_bx.as_bytes().to_vec(),
-        ];
+    fn decode(&mut self, raw: &[u8], rdata: &[u8]) -> Result<(), Error> {
+        let getv = |mut offset: &mut usize| -> Result<Labels, Error> {
+            if *offset > rdata.len() {
+                return Err(Error::msg("not completed labels"));
+            }
+            let (mut compressed_offset, is_compressed) =
+                util::is_compressed_wrap(&rdata[*offset..]);
+            if is_compressed {
+                *offset += 2;
+                return Ok(Labels::from(raw, &mut compressed_offset)?);
+            }
+            return Ok(Labels::from(rdata, &mut offset)?);
+        };
+
+        let mut offset = 0_usize;
+        self.rmail_bx = getv(&mut offset)?.encode_to_str();
+        self.email_bx = getv(&mut offset)?.encode_to_str();
+
+        Ok(())
     }
 
     fn encode(&self) -> Vec<u8> {
@@ -81,6 +83,6 @@ impl RDataOperation for MInfo {
         r.extend_from_slice(self.rmail_bx.as_bytes());
         r.extend_from_slice(self.email_bx.as_bytes());
 
-        return r;
+        r
     }
 }

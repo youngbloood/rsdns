@@ -20,33 +20,36 @@ decimal numbers separated by dots without any imbedded spaces (e.g.,
 "10.2.0.52" or "192.0.5.6").
  */
 
-use anyhow::{Error, Ok};
-
 use super::RDataOperation;
+use crate::dns::rdata::ERR_RDATE_MSG;
+use anyhow::{anyhow, Error, Ok};
 use std::net::Ipv4Addr;
 
 #[derive(Debug)]
 pub struct A(pub Ipv4Addr);
 
 impl A {
-    pub fn from(raw: &[u8]) -> Result<Self, Error> {
-        if raw.len() < 4 {
-            return Err(Error::msg("not completed ip data"));
-        }
-
-        let a = A {
-            0: Ipv4Addr::new(raw[0], raw[1], raw[2], raw[3]),
+    pub fn from(raw: &[u8], rdata: &[u8]) -> Result<Self, Error> {
+        let mut a = Self {
+            0: Ipv4Addr::new(127, 0, 0, 0),
         };
+        a.decode(raw, rdata)?;
+
         Ok(a)
     }
 }
 
 impl RDataOperation for A {
-    fn decode(&self) -> Vec<Vec<u8>> {
-        return vec![self.0.octets().to_vec()];
+    fn decode(&mut self, _raw: &[u8], rdata: &[u8]) -> Result<(), Error> {
+        if rdata.len() < 4 {
+            return Err(anyhow!(ERR_RDATE_MSG));
+        }
+        self.0 = Ipv4Addr::new(rdata[0], rdata[1], rdata[2], rdata[3]);
+
+        Ok(())
     }
 
     fn encode(&self) -> Vec<u8> {
-        return self.0.octets().to_vec();
+        self.0.octets().to_vec()
     }
 }

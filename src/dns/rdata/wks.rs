@@ -75,12 +75,8 @@ impl WKS {
 }
 
 impl RDataOperation for WKS {
-    fn decode(&self) -> Vec<Vec<u8>> {
-        return vec![
-            self.addr.octets().to_vec(),
-            vec![self.protocol],
-            self.bit_map.to_vec(),
-        ];
+    fn decode(&mut self, raw: &[u8], rdata: &[u8]) -> Result<(), Error> {
+        todo!()
     }
 
     fn encode(&self) -> Vec<u8> {
