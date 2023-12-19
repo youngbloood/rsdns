@@ -39,6 +39,8 @@ use super::{
 };
 use crate::util;
 use anyhow::{bail, Error};
+use nom::FindSubstring;
+use rsbit::BitOperation;
 use std::fmt::Debug;
 
 const ERR_RDATE_MSG: &str = "not completed rdate";
@@ -186,12 +188,21 @@ pub fn parse_domain_name(raw: &[u8], _rdata: &[u8]) -> Result<Labels, Error> {
 /// encode_domain_name_wrap
 pub fn encode_domain_name_wrap(domain_name: &str, raw: &[u8], is_compressed: bool) -> Vec<u8> {
     let encoded = encode_domain_name(domain_name);
-
-    if is_compressed {
-        todo!("find the sub string in raw and return the pos")
+    if !is_compressed {
+        return encoded;
     }
 
-    return encoded;
+    let pos = raw.find_substring(encoded.as_slice());
+    if pos.is_some() {
+        let mut compressed_unit = (pos.unwrap() as u16).to_be_bytes();
+        let mut first = &mut compressed_unit[0];
+        first.set_1(7);
+        first.set_1(6);
+        compressed_unit[0] = *first;
+        return compressed_unit.to_vec();
+    }
+
+    encoded
 }
 
 /// encode domain name
