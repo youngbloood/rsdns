@@ -15,3 +15,30 @@ NULL records cause no additional section processing.  NULL RRs are not
 allowed in master files.  NULLs are used as placeholders in some
 experimental extensions of the DNS.
  */
+
+use super::RDataOperation;
+use anyhow::Error;
+
+#[derive(Debug)]
+pub struct Null(Vec<u8>);
+
+impl Null {
+    pub fn from(raw: &[u8], rdata: &[u8]) -> Result<Self, Error> {
+        let mut mr = Self { 0: vec![] };
+        mr.decode(raw, rdata)?;
+
+        Ok(mr)
+    }
+}
+
+impl RDataOperation for Null {
+    fn decode(&mut self, _raw: &[u8], rdata: &[u8]) -> Result<(), Error> {
+        self.0 = rdata.to_vec();
+
+        Ok(())
+    }
+
+    fn encode(&self) -> Vec<u8> {
+        self.0.to_vec()
+    }
+}

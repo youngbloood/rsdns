@@ -24,3 +24,39 @@ with the host, although it is typically a strong hint.  For example,
 hosts which are name servers for either Internet (IN) or Hesiod (HS)
 class information are normally queried using IN class protocols.
  */
+
+use super::RDataOperation;
+use crate::{dns::labels::Labels, util};
+use anyhow::Error;
+
+#[derive(Debug)]
+pub struct NS(pub String);
+
+impl NS {
+    pub fn from(raw: &[u8], rdata: &[u8]) -> Result<Self, Error> {
+        let mut cname = Self { 0: "".to_string() };
+        cname.decode(raw, rdata)?;
+
+        Ok(cname)
+    }
+}
+
+impl RDataOperation for NS {
+    fn decode(&mut self, raw: &[u8], rdata: &[u8]) -> Result<(), Error> {
+        let (mut compressed_offset, is_compressed) = util::is_compressed_wrap(rdata);
+        let labels;
+        if is_compressed {
+            labels = Labels::from(raw, &mut compressed_offset)?;
+        } else {
+            let mut offset = 0_usize;
+            labels = Labels::from(rdata, &mut offset)?;
+        }
+        self.0 = labels.encode_to_str();
+
+        Ok(())
+    }
+
+    fn encode(&self) -> Vec<u8> {
+        self.0.as_bytes().to_vec()
+    }
+}

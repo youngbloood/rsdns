@@ -20,12 +20,22 @@ mod md;
 mod mf;
 mod mg;
 mod minfo;
+mod mr;
+mod mx;
+mod ns;
+mod null;
+mod ptr;
+mod soa;
+mod txt;
 mod wks;
 
-use self::{a::A, cname::CName, hinfo::HInfo, mb::MB, md::MD, mf::MF, mg::MG, minfo::MInfo};
+use self::{
+    a::A, cname::CName, hinfo::HInfo, mb::MB, md::MD, mf::MF, mg::MG, minfo::MInfo, mr::MR, mx::MX,
+    ns::NS, null::Null, ptr::PTR, soa::SOA, txt::TXT, wks::WKS,
+};
 use super::{
     labels::Labels, Type, TYPE_A, TYPE_CNAME, TYPE_HINFO, TYPE_MB, TYPE_MD, TYPE_MF, TYPE_MG,
-    TYPE_MINFO,
+    TYPE_MINFO, TYPE_MR, TYPE_MX, TYPE_NS, TYPE_NULL, TYPE_PTR, TYPE_SOA, TYPE_TXT, TYPE_WKS,
 };
 use crate::util;
 use anyhow::{bail, Error};
@@ -53,7 +63,6 @@ RDateType union all the Object that impl the RDataOperation
 #[derive(Debug)]
 pub enum RDataType {
     None,
-    A(A),
     CName(CName),
     HInfo(HInfo),
     MB(MB),
@@ -61,6 +70,15 @@ pub enum RDataType {
     MF(MF),
     MG(MG),
     MInfo(MInfo),
+    MR(MR),
+    MX(MX),
+    Null(Null),
+    NS(NS),
+    PTR(PTR),
+    SOA(SOA),
+    TXT(TXT),
+    A(A),
+    WKS(WKS),
 }
 
 impl RDataType {
@@ -70,7 +88,6 @@ impl RDataType {
 
     pub fn from(raw: &[u8], _rdata: &[u8], typ: Type) -> Result<Self, Error> {
         match typ {
-            TYPE_A => Ok(RDataType::A(A::from(raw, _rdata)?)),
             TYPE_CNAME => Ok(RDataType::CName(CName::from(raw, _rdata)?)),
             TYPE_HINFO => Ok(RDataType::HInfo(HInfo::from(raw, _rdata)?)),
             TYPE_MB => Ok(RDataType::MB(MB::from(raw, _rdata)?)),
@@ -78,7 +95,16 @@ impl RDataType {
             TYPE_MF => Ok(RDataType::MF(MF::from(raw, _rdata)?)),
             TYPE_MG => Ok(RDataType::MG(MG::from(raw, _rdata)?)),
             TYPE_MINFO => Ok(RDataType::MG(MG::from(raw, _rdata)?)),
-            _ => todo!(),
+            TYPE_MR => Ok(RDataType::MR(MR::from(raw, _rdata)?)),
+            TYPE_MX => Ok(RDataType::MX(MX::from(raw, _rdata)?)),
+            TYPE_NULL => Ok(RDataType::Null(Null::from(raw, _rdata)?)),
+            TYPE_NS => Ok(RDataType::NS(NS::from(raw, _rdata)?)),
+            TYPE_PTR => Ok(RDataType::PTR(PTR::from(raw, _rdata)?)),
+            TYPE_SOA => Ok(RDataType::SOA(SOA::from(raw, _rdata)?)),
+            TYPE_TXT => Ok(RDataType::TXT(TXT::from(raw, _rdata)?)),
+            TYPE_A => Ok(RDataType::A(A::from(raw, _rdata)?)),
+            TYPE_WKS => Ok(RDataType::WKS(WKS::from(raw, _rdata)?)),
+            _ => bail!(ERR_RDATE_TYPE),
         }
     }
 }
@@ -86,8 +112,6 @@ impl RDataType {
 impl RDataOperation for RDataType {
     fn decode(&mut self, raw: &[u8], rdata: &[u8]) -> Result<(), Error> {
         match self {
-            RDataType::None => bail!(ERR_RDATE_TYPE),
-            RDataType::A(a) => a.decode(raw, rdata),
             RDataType::CName(cname) => cname.decode(raw, rdata),
             RDataType::HInfo(hinfo) => hinfo.decode(raw, rdata),
             RDataType::MB(mb) => mb.decode(raw, rdata),
@@ -95,6 +119,16 @@ impl RDataOperation for RDataType {
             RDataType::MF(mf) => mf.decode(raw, rdata),
             RDataType::MG(mg) => mg.decode(raw, rdata),
             RDataType::MInfo(minfo) => minfo.decode(raw, rdata),
+            RDataType::MR(mr) => mr.decode(raw, rdata),
+            RDataType::MX(mx) => mx.decode(raw, rdata),
+            RDataType::Null(null) => null.decode(raw, rdata),
+            RDataType::NS(ns) => ns.decode(raw, rdata),
+            RDataType::PTR(ptr) => ptr.decode(raw, rdata),
+            RDataType::SOA(soa) => soa.decode(raw, rdata),
+            RDataType::TXT(txt) => txt.decode(raw, rdata),
+            RDataType::A(a) => a.decode(raw, rdata),
+            RDataType::WKS(wks) => wks.decode(raw, rdata),
+            _ => bail!(ERR_RDATE_TYPE),
         }
     }
 

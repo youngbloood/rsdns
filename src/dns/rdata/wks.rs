@@ -45,11 +45,12 @@ In master files, both ports and protocols are expressed using mnemonics
 or decimal numbers.
  */
 
-use std::net::Ipv4Addr;
-
-use anyhow::Error;
+use crate::dns::rdata::ERR_RDATE_MSG;
 
 use super::RDataOperation;
+use anyhow::anyhow;
+use anyhow::Error;
+use std::net::Ipv4Addr;
 
 #[derive(Debug)]
 pub struct WKS {
@@ -64,19 +65,28 @@ pub struct WKS {
 }
 
 impl WKS {
-    pub fn from(raw: &[u8]) -> Result<Self, Error> {
-        let wks = WKS {
-            addr: todo!(),
-            protocol: todo!(),
-            bit_map: todo!(),
+    pub fn from(raw: &[u8], rdata: &[u8]) -> Result<Self, Error> {
+        let mut wks = WKS {
+            addr: Ipv4Addr::new(127, 0, 0, 1),
+            protocol: 0,
+            bit_map: vec![],
         };
+        wks.decode(raw, rdata)?;
+
         Ok(wks)
     }
 }
 
 impl RDataOperation for WKS {
-    fn decode(&mut self, raw: &[u8], rdata: &[u8]) -> Result<(), Error> {
-        todo!()
+    fn decode(&mut self, _raw: &[u8], rdata: &[u8]) -> Result<(), Error> {
+        if 5 > rdata.len() {
+            return Err(anyhow!(ERR_RDATE_MSG));
+        }
+        self.addr = Ipv4Addr::new(rdata[0], rdata[1], rdata[2], rdata[3]);
+        self.protocol = rdata[4];
+        self.bit_map = rdata[4..].to_vec();
+
+        Ok(())
     }
 
     fn encode(&self) -> Vec<u8> {
