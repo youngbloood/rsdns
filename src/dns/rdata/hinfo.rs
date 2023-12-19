@@ -31,10 +31,10 @@ use super::RDataOperation;
 #[derive(Debug)]
 pub struct HInfo {
     /// A <character-string> which specifies the CPU type.
-    cpu: String,
+    pub cpu: String,
 
     /// A <character-string> which specifies the operatins system type.
-    os: String,
+    pub os: String,
 }
 
 impl HInfo {

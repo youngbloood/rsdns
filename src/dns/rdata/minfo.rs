@@ -40,8 +40,8 @@ use super::RDataOperation;
 
 #[derive(Debug)]
 pub struct MInfo {
-    rmail_bx: String,
-    email_bx: String,
+    pub rmail_bx: String,
+    pub email_bx: String,
 }
 
 impl MInfo {

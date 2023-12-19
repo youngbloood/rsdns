@@ -20,7 +20,7 @@ use super::RDataOperation;
 use anyhow::Error;
 
 #[derive(Debug)]
-pub struct MG(String);
+pub struct MG(pub String);
 
 impl MG {
     pub fn from(raw: &[u8]) -> Result<Self, Error> {

@@ -22,7 +22,7 @@ the description of name server logic in [RFC-1034] for details.
 */
 
 #[derive(Debug)]
-pub struct CName(String);
+pub struct CName(pub String);
 
 impl CName {
     pub fn from(raw: &[u8]) -> Result<Self, Error> {

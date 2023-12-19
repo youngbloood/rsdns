@@ -26,7 +26,7 @@ use super::RDataOperation;
 use std::net::Ipv4Addr;
 
 #[derive(Debug)]
-pub struct A(Ipv4Addr);
+pub struct A(pub Ipv4Addr);
 
 impl A {
     pub fn from(raw: &[u8]) -> Result<Self, Error> {

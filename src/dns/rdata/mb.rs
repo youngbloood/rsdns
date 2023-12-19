@@ -18,7 +18,7 @@ use super::RDataOperation;
 use anyhow::Error;
 
 #[derive(Debug)]
-pub struct MB(String);
+pub struct MB(pub String);
 
 impl MB {
     pub fn from(raw: &[u8]) -> Result<Self, Error> {
