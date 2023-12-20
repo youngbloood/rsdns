@@ -69,8 +69,8 @@ impl Question {
         };
 
         // parse domain name
-        ques.qname.parse(&raw, offset)?;
-        if *offset + 4 >= raw.len() {
+        ques.qname = Labels::parse(&raw, offset)?;
+        if *offset + 4 > raw.len() {
             return pkg_err;
         }
         // parse qtype

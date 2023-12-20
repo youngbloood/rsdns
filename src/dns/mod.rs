@@ -5,12 +5,11 @@ pub mod question;
 pub mod rdata;
 pub mod rr;
 
-use std::{cell::RefCell, rc::Rc};
-
 pub use dns::DNS;
 pub use header::Header;
 pub use question::Question;
 pub use rr::{RRs, ResourceRecord};
+use std::{cell::RefCell, rc::Rc};
 
 pub type Type = u16;
 pub type Class = u16;
@@ -65,10 +64,13 @@ pub const TYPE_TXT: Type = 16;
 
 /// for QType
 pub const TYPE_AXFR: Type = 252;
+
 /// for QType
 pub const TYPE_MAILB: Type = 253;
+
 /// for QType
 pub const TYPE_MAILA: Type = 254;
+
 /// for QType
 pub const TYPE_WILDCARDS: Type = 255;
 

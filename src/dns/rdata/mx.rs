@@ -2,14 +2,14 @@
 ref: https://www.rfc-editor.org/rfc/rfc1035#section-3.3.9
 
 # MX RDATA format
-
+```shell
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     |                  PREFERENCE                   |
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     /                   EXCHANGE                    /
     /                                               /
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-
+```
 where:
 
 PREFERENCE      A 16 bit integer which specifies the preference given to
@@ -24,8 +24,7 @@ specified by EXCHANGE.  The use of MX RRs is explained in detail in
 [RFC-974].
  */
 
-use super::{encode_domain_name_wrap, RDataOperation};
-use crate::{dns::labels::Labels, util};
+use super::{encode_domain_name_wrap, parse_domain_name, RDataOperation};
 use anyhow::Error;
 
 #[derive(Debug)]
@@ -49,16 +48,10 @@ impl MX {
 impl RDataOperation for MX {
     fn decode(&mut self, raw: &[u8], rdata: &[u8]) -> Result<(), Error> {
         self.preference = u16::from_be_bytes(rdata[..2].try_into().expect("get preference failed"));
-
-        let (mut compressed_offset, is_compressed) = util::is_compressed_wrap(&rdata[2..]);
-        let labels;
-        if is_compressed {
-            labels = Labels::from(raw, &mut compressed_offset)?;
-        } else {
-            let mut offset = 0_usize;
-            labels = Labels::from(rdata, &mut offset)?;
-        }
-        self.exchange = labels.encode_to_str();
+        self.exchange = parse_domain_name(raw, &rdata[2..])?
+            .get(0)
+            .unwrap()
+            .encode_to_str();
 
         Ok(())
     }

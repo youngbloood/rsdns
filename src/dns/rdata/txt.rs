@@ -2,11 +2,11 @@
 ref: https://www.rfc-editor.org/rfc/rfc1035#section-3.3.14
 
 # TXT RDATA format
-
+```shell
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     /                   TXT-DATA                    /
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-
+```
 where:
 
 TXT-DATA        One or more <character-string>s.

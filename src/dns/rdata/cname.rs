@@ -2,11 +2,12 @@
 ref: https://www.rfc-editor.org/rfc/rfc1035#section-3.3.1
 
 # CNAME RDATA format
+```shell
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     /                     CNAME                     /
     /                                               /
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-
+```
 where:
 
 CNAME           A <domain-name> which specifies the canonical or primary
@@ -17,8 +18,7 @@ choose to restart the query at the canonical name in certain cases.  See
 the description of name server logic in [RFC-1034] for details.
 */
 
-use super::{encode_domain_name_wrap, RDataOperation};
-use crate::{dns::labels::Labels, util};
+use super::{encode_domain_name_wrap, parse_domain_name, RDataOperation};
 use anyhow::Error;
 
 #[derive(Debug)]
@@ -35,15 +35,10 @@ impl CName {
 
 impl RDataOperation for CName {
     fn decode(&mut self, raw: &[u8], rdata: &[u8]) -> Result<(), Error> {
-        let (mut compressed_offset, is_compressed) = util::is_compressed_wrap(rdata);
-        let labels;
-        if is_compressed {
-            labels = Labels::from(raw, &mut compressed_offset)?;
-        } else {
-            let mut offset = 0_usize;
-            labels = Labels::from(rdata, &mut offset)?;
-        }
-        self.0 = labels.encode_to_str();
+        self.0 = parse_domain_name(raw, rdata)?
+            .get(0)
+            .unwrap()
+            .encode_to_str();
 
         Ok(())
     }

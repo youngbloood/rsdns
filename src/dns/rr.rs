@@ -1,10 +1,9 @@
-use crate::util;
-
 use super::{
     labels::Labels,
     rdata::{RDataOperation, RDataType},
     Class, RcRf, Type, VecRcRf,
 };
+use crate::util;
 use anyhow::Error;
 
 /// The answer, authority, and additional sections all share the same
@@ -88,18 +87,17 @@ impl ResourceRecord {
         if *offset + 2 > raw.len() {
             return Err(packet_err);
         }
-        let (compressed_offset, is_compressed) =
-            util::is_compressed_wrap(&raw[*offset..*offset + 2]);
 
+        let (compressed_offset, is_compressed) = util::is_compressed_wrap(&raw[*offset..]);
         if is_compressed {
             // parse domain_name from the pointer position, that point a labels start position
             *offset += 2;
             let mut domain_name_offset = compressed_offset;
-            let labels = Labels::from(raw, &mut domain_name_offset)?;
+            let labels = Labels::parse(raw, &mut domain_name_offset)?;
             rr.name = labels.encode_to_str();
         } else {
             // parse domain_name from labels directly
-            let labels = Labels::from(raw, offset)?;
+            let labels = Labels::parse(raw, offset)?;
             rr.name = labels.encode_to_str();
         }
 
@@ -134,7 +132,6 @@ impl ResourceRecord {
                 .expect("slice with incorrent length"),
         );
         *offset += 2;
-
         if *offset + rr.rdlength as usize > raw.len() {
             return Err(packet_err);
         }

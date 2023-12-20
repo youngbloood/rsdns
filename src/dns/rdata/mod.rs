@@ -175,14 +175,37 @@ pub fn parse_charactor_string(_rdata: &[u8]) -> Result<Vec<Vec<u8>>, Error> {
 }
 
 ///  all domain names in the RDATA section of these RRs may be compressed, so we will check weather it compressed.
-pub fn parse_domain_name(raw: &[u8], _rdata: &[u8]) -> Result<Labels, Error> {
-    let (mut compressed_offset, is_compressed) = util::is_compressed_wrap(&_rdata);
-    if is_compressed {
-        return Ok(Labels::from(raw, &mut compressed_offset)?);
-    }
+pub fn parse_domain_name(raw: &[u8], rdata: &[u8]) -> Result<Vec<Labels>, Error> {
+    let mut list = vec![];
     let mut offset = 0;
+    while offset < rdata.len() {
+        let mut labels = Labels::new();
+        loop {
+            if rdata[offset] == b'\x00' {
+                offset += 1;
+                break;
+            }
+            let (mut compressed_offset, is_compressed) = util::is_compressed_wrap(&rdata[offset..]);
+            if is_compressed {
+                offset += 2;
+                labels.extend(Labels::parse(raw, &mut compressed_offset)?);
+                break;
+            } else {
+                let len = rdata[offset];
+                let start = offset + 1;
+                labels.extend(Labels::from(
+                    String::from_utf8(rdata[start..start + len as usize].to_vec())?.as_str(),
+                )?);
+                offset += 1 + len as usize;
+            }
+            if offset >= rdata.len() {
+                return Err(Error::msg(ERR_RDATE_MSG));
+            }
+        }
+        list.push(labels)
+    }
 
-    Ok(Labels::from(_rdata, &mut offset)?)
+    Ok(list)
 }
 
 /// encode_domain_name_wrap
@@ -271,3 +294,27 @@ pub fn encode_domain_name(domain_name: &str) -> Vec<u8> {
 //         return self.resource.encode();
 //     }
 // }
+
+#[cfg(test)]
+mod tests {
+    use super::parse_domain_name;
+
+    #[test]
+    fn test_parse_domain_name_without_raw() {
+        let rdatas: &[(&[u8], bool)] = &[
+            (
+                &[3, 100, 110, 115, 1, 115, 0, 3, 97, 98, 99, 1, 116, 0],
+                true,
+            ),
+            (&[3, 100, 110, 115, 1, 115, 0, 3, 97, 98, 99, 1, 116], false),
+        ];
+
+        for rdata in rdatas {
+            let labels = parse_domain_name(&[], rdata.0);
+            assert_eq!(rdata.1, labels.is_ok());
+            if labels.is_ok() {
+                println!("labels = {:?}", labels);
+            }
+        }
+    }
+}

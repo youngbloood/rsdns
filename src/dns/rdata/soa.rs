@@ -2,7 +2,7 @@
 ref: https://www.rfc-editor.org/rfc/rfc1035#section-3.3.13
 
 # SOA RDATA format
-
+```shell
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     /                     MNAME                     /
     /                                               /
@@ -24,7 +24,7 @@ ref: https://www.rfc-editor.org/rfc/rfc1035#section-3.3.13
     |                    MINIMUM                    |
     |                                               |
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-
+```
 where:
 
 MNAME           The <domain-name> of the name server that was the
@@ -68,11 +68,8 @@ reason for this provison is to allow future dynamic update facilities to
 change the SOA RR with known semantics.
  */
 
-use super::{encode_domain_name_wrap, RDataOperation};
-use crate::{
-    dns::{labels::Labels, rdata::ERR_RDATE_MSG},
-    util,
-};
+use super::{encode_domain_name_wrap, parse_domain_name, RDataOperation};
+use crate::dns::rdata::ERR_RDATE_MSG;
 use anyhow::{anyhow, Error, Ok};
 
 #[derive(Debug)]
@@ -120,22 +117,12 @@ impl SOA {
 
 impl RDataOperation for SOA {
     fn decode(&mut self, raw: &[u8], rdata: &[u8]) -> Result<(), Error> {
-        let getv = |mut offset: &mut usize| -> Result<Labels, Error> {
-            if *offset > rdata.len() {
-                return Err(Error::msg("not completed labels"));
-            }
-            let (mut compressed_offset, is_compressed) =
-                util::is_compressed_wrap(&rdata[*offset..]);
-            if is_compressed {
-                *offset += 2;
-                return Ok(Labels::from(raw, &mut compressed_offset)?);
-            }
-            return Ok(Labels::from(rdata, &mut offset)?);
-        };
-
-        let mut offset = 0_usize;
-        self.mname = getv(&mut offset)?.encode_to_str();
-        self.rname = getv(&mut offset)?.encode_to_str();
+        let list = parse_domain_name(raw, &rdata[..rdata.len() - 20])?;
+        if list.len() < 2 {
+            return Err(anyhow!(ERR_RDATE_MSG));
+        }
+        self.mname = list.get(0).unwrap().encode_to_str();
+        self.rname = list.get(1).unwrap().encode_to_str();
 
         let getu32 = |offset: &mut usize| -> Result<u32, Error> {
             if *offset + 4 > rdata.len() {
@@ -150,7 +137,7 @@ impl RDataOperation for SOA {
 
             return Ok(v);
         };
-
+        let mut offset = rdata.len() - 20;
         self.serial = getu32(&mut offset)?;
         self.refresh = getu32(&mut offset)?;
         self.retry = getu32(&mut offset)?;

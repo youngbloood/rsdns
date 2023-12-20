@@ -2,7 +2,7 @@
 ref: https://www.rfc-editor.org/rfc/rfc1035#section-3.4.2
 
 # WKS RDATA format
-
+```shell
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     |                    ADDRESS                    |
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
@@ -12,7 +12,7 @@ ref: https://www.rfc-editor.org/rfc/rfc1035#section-3.4.2
     /                   <BIT MAP>                   /
     /                                               /
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-
+```
 where:
 
 ADDRESS         An 32 bit Internet address
@@ -45,9 +45,8 @@ In master files, both ports and protocols are expressed using mnemonics
 or decimal numbers.
  */
 
-use crate::dns::rdata::ERR_RDATE_MSG;
-
 use super::RDataOperation;
+use crate::dns::rdata::ERR_RDATE_MSG;
 use anyhow::anyhow;
 use anyhow::Error;
 use std::net::Ipv4Addr;

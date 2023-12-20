@@ -2,11 +2,11 @@
 ref: https://www.rfc-editor.org/rfc/rfc1035#section-3.4.1
 
 # A RDATA format
-
+```shell
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     |                    ADDRESS                    |
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-
+```
 where:
 
 ADDRESS         A 32 bit Internet address.

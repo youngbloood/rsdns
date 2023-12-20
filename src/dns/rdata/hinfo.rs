@@ -2,12 +2,13 @@
 ref: https://www.rfc-editor.org/rfc/rfc1035#section-3.3.2
 
 # HINFO RDATA format
+```shell
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     /                      CPU                      /
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     /                       OS                      /
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-
+```
 where:
 
 CPU             A <character-string> which specifies the CPU type.

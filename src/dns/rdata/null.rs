@@ -2,12 +2,12 @@
 ref: https://www.rfc-editor.org/rfc/rfc1035#section-3.3.10
 
 #  NULL RDATA format (EXPERIMENTAL)
-
+```shell
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     /                  <anything>                   /
     /                                               /
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-
+```
 Anything at all may be in the RDATA field so long as it is 65535 octets
 or less.
 

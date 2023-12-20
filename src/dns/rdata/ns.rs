@@ -2,12 +2,12 @@
 ref: https://www.rfc-editor.org/rfc/rfc1035#section-3.3.11
 
 # NS RDATA format
-
+```shell
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     /                   NSDNAME                     /
     /                                               /
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-
+```
 where:
 
 NSDNAME         A <domain-name> which specifies a host which should be
@@ -25,8 +25,7 @@ hosts which are name servers for either Internet (IN) or Hesiod (HS)
 class information are normally queried using IN class protocols.
  */
 
-use super::{encode_domain_name_wrap, RDataOperation};
-use crate::{dns::labels::Labels, util};
+use super::{encode_domain_name_wrap, parse_domain_name, RDataOperation};
 use anyhow::Error;
 
 #[derive(Debug)]
@@ -43,15 +42,10 @@ impl NS {
 
 impl RDataOperation for NS {
     fn decode(&mut self, raw: &[u8], rdata: &[u8]) -> Result<(), Error> {
-        let (mut compressed_offset, is_compressed) = util::is_compressed_wrap(rdata);
-        let labels;
-        if is_compressed {
-            labels = Labels::from(raw, &mut compressed_offset)?;
-        } else {
-            let mut offset = 0_usize;
-            labels = Labels::from(rdata, &mut offset)?;
-        }
-        self.0 = labels.encode_to_str();
+        self.0 = parse_domain_name(raw, rdata)?
+            .get(0)
+            .unwrap()
+            .encode_to_str();
 
         Ok(())
     }

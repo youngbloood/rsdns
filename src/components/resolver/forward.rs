@@ -67,20 +67,149 @@ impl ForwardOperation for DefaultForward {
 
 #[cfg(test)]
 mod tests {
+    use std::thread;
+
     use super::*;
-    use crate::{dns, DNS};
+    use crate::{
+        dns::{
+            self, Class, Type, CLASS_HS, CLASS_IN, CLASS_WILDCARDS, TYPE_A, TYPE_AXFR, TYPE_TXT,
+            TYPE_WILDCARDS,
+        },
+        DNS,
+    };
+
+    fn test_default_forward_forward_part(domains: &[&str]) {
+        let query = |domain: &str, typ: Type, class: Class| -> Result<DNS, Error> {
+            let mut dns = DNS::new();
+            dns.with_ques(domain, typ, class);
+            dns.head().with_rd(true);
+            let mut fwd: DefaultForward = DefaultForward::new();
+            fwd.with_target("8.8.8.8:53").with_protocol("udp");
+            let new_dns = fwd.forward(&mut dns).unwrap();
+
+            Ok(new_dns)
+        };
+
+        let is_print = true;
+        let print = |domain: &str, typ: Type, class: Class, dns: DNS| {
+            if !is_print {
+                return;
+            }
+            println!(
+                "Domain[{}], Type[{}], Class[{}], ParsedDNS = {:?}",
+                domain, typ, class, dns
+            );
+        };
+
+        for domain in domains {
+            // for debug
+            // if !domain.eq(&"yahoo.co.jp") {
+            //     continue;
+            // }
+            for typ in TYPE_A..TYPE_TXT {
+                for class in CLASS_IN..CLASS_HS {
+                    let result = query(domain, typ, class);
+                    assert_eq!(true, result.is_ok());
+                    print(domain, typ, class, result.unwrap());
+                }
+
+                let result = query(domain, typ, CLASS_WILDCARDS);
+                assert_eq!(true, result.is_ok());
+                print(domain, typ, CLASS_WILDCARDS, result.unwrap());
+            }
+
+            for typ in TYPE_AXFR..TYPE_WILDCARDS {
+                for class in CLASS_IN..CLASS_HS {
+                    let result = query(domain, typ, class);
+                    assert_eq!(true, result.is_ok());
+                    print(domain, typ, class, result.unwrap());
+                }
+
+                let result = query(domain, typ, CLASS_WILDCARDS);
+                assert_eq!(true, result.is_ok());
+                print(domain, typ, CLASS_WILDCARDS, result.unwrap());
+            }
+        }
+    }
 
     #[test]
-    fn test_default_forward_forward() {
-        let mut dns = DNS::new();
-        dns.with_ques("google.com", dns::TYPE_MX, dns::CLASS_IN);
-        dns.with_ques("baidu.com", dns::TYPE_MX, dns::CLASS_IN);
-        dns.head().with_rd(true);
-        println!("dns1 = {:?}", &dns.encode(false));
+    fn test_default_forward_forward_batch() {
+        // data from https://zh.wikipedia.org/wiki/%E6%9C%80%E5%8F%97%E6%AC%A2%E8%BF%8E%E7%BD%91%E7%AB%99%E5%88%97%E8%A1%A8
+        // 1-10
 
-        let mut fwd: DefaultForward = DefaultForward::new();
-        fwd.with_target("8.8.8.8:53").with_protocol("udp");
-        let new_dns = fwd.forward(&mut dns).unwrap();
-        println!("new_dns = {:?}", new_dns);
+        let domains: &[&[&str]] = &[
+            &[
+                "google.com",
+                "YouTube.com",
+                "Facebook.com",
+                "instagram.com",
+                "twitter.com",
+                "baidu.com",
+                "wikipedia.org",
+                "yahoo.com",
+                "yandex.ru",
+                "xvideos.com",
+            ],
+            &[
+                "whatsapp.com",
+                "xnxx.com",
+                "yahoo.co.jp",
+                "amazon.com",
+                "live.com",
+                "netflix.com",
+                "pornhub.com",
+                "office.com",
+                "tiktok.com",
+                "reddit.com",
+            ],
+            &[
+                "zoom.us",
+                "linkedin.com",
+                "vk.com",
+                "xhamster.com",
+                "discord.com",
+                "bing.com",
+                "Naver.com",
+                "twitch.tv",
+                "mail.ru",
+                "microsoftonline.com",
+            ],
+            &[
+                "duckduckgo.com",
+                "roblox.com",
+                "bilibili.com",
+                "qq.com",
+                "pinterest.com",
+                "Microsoft.com",
+                "msn.com",
+                "docomo.ne.jp",
+                "news.yahoo.co.jp",
+                "globo.com",
+            ],
+            &[
+                "samsung.com",
+                "google.com.br",
+                "t.me",
+                "eBay.com",
+                "turbopages.org",
+            ],
+            &[
+                "accuweather.com",
+                "ok.ru",
+                "bbc.co.uk",
+                "fandom.com",
+                "weather.com",
+            ],
+        ];
+
+        let mut jhs = vec![];
+        for domain in domains {
+            let jh = thread::spawn(|| test_default_forward_forward_part(domain));
+            jhs.push(jh);
+        }
+
+        for jh in jhs {
+            let _ = jh.join();
+        }
     }
 }

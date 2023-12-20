@@ -2,13 +2,13 @@
 ref: https://www.rfc-editor.org/rfc/rfc1035#section-3.3.7
 
 # MINFO RDATA format (EXPERIMENTAL)
-
+```shell
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     /                    RMAILBX                    /
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
     /                    EMAILBX                    /
     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-
+```
 where:
 
 RMAILBX         A <domain-name> which specifies a mailbox which is
@@ -32,11 +32,9 @@ records can be associated with a simple mailbox, they are usually used
 with a mailing list.
  */
 
-use anyhow::Error;
-
-use crate::{dns::labels::Labels, util};
-
-use super::{encode_domain_name_wrap, RDataOperation};
+use super::{encode_domain_name_wrap, parse_domain_name, RDataOperation};
+use crate::dns::rdata::ERR_RDATE_MSG;
+use anyhow::{anyhow, Error};
 
 #[derive(Debug)]
 pub struct MInfo {
@@ -58,22 +56,12 @@ impl MInfo {
 
 impl RDataOperation for MInfo {
     fn decode(&mut self, raw: &[u8], rdata: &[u8]) -> Result<(), Error> {
-        let getv = |mut offset: &mut usize| -> Result<Labels, Error> {
-            if *offset > rdata.len() {
-                return Err(Error::msg("not completed labels"));
-            }
-            let (mut compressed_offset, is_compressed) =
-                util::is_compressed_wrap(&rdata[*offset..]);
-            if is_compressed {
-                *offset += 2;
-                return Ok(Labels::from(raw, &mut compressed_offset)?);
-            }
-            return Ok(Labels::from(rdata, &mut offset)?);
-        };
-
-        let mut offset = 0_usize;
-        self.rmail_bx = getv(&mut offset)?.encode_to_str();
-        self.email_bx = getv(&mut offset)?.encode_to_str();
+        let list = parse_domain_name(raw, rdata)?;
+        if list.len() < 2 {
+            return Err(anyhow!(ERR_RDATE_MSG));
+        }
+        self.rmail_bx = list.get(0).unwrap().encode_to_str();
+        self.email_bx = list.get(1).unwrap().encode_to_str();
 
         Ok(())
     }
