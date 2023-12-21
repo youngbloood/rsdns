@@ -27,6 +27,7 @@ class information are normally queried using IN class protocols.
 
 use super::{encode_domain_name_wrap, parse_domain_name, RDataOperation};
 use anyhow::Error;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct NS(pub String);
@@ -50,11 +51,7 @@ impl RDataOperation for NS {
         Ok(())
     }
 
-    fn encode(&self, raw: &mut Vec<u8>, is_compressed: bool) -> Result<(), Error> {
-        raw.extend_from_slice(
-            &encode_domain_name_wrap(self.0.as_str(), raw, is_compressed).to_vec(),
-        );
-
-        Ok(())
+    fn encode(&self, hm: &HashMap<String, usize>, is_compressed: bool) -> Result<Vec<u8>, Error> {
+        Ok(encode_domain_name_wrap(self.0.as_str(), hm, is_compressed)?)
     }
 }

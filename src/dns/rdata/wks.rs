@@ -49,6 +49,7 @@ use super::RDataOperation;
 use crate::dns::rdata::ERR_RDATE_MSG;
 use anyhow::anyhow;
 use anyhow::Error;
+use std::collections::HashMap;
 use std::net::Ipv4Addr;
 
 #[derive(Debug)]
@@ -88,11 +89,12 @@ impl RDataOperation for WKS {
         Ok(())
     }
 
-    fn encode(&self, raw: &mut Vec<u8>, _is_compressed: bool) -> Result<(), Error> {
-        raw.extend_from_slice(&self.addr.octets());
-        raw.push(self.protocol);
-        raw.extend_from_slice(&self.bit_map);
+    fn encode(&self, _hm: &HashMap<String, usize>, _is_compressed: bool) -> Result<Vec<u8>, Error> {
+        let mut r = vec![];
+        r.extend_from_slice(&self.addr.octets());
+        r.push(self.protocol);
+        r.extend_from_slice(&self.bit_map);
 
-        Ok(())
+        Ok(r)
     }
 }

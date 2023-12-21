@@ -26,6 +26,7 @@ specified by EXCHANGE.  The use of MX RRs is explained in detail in
 
 use super::{encode_domain_name_wrap, parse_domain_name, RDataOperation};
 use anyhow::Error;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct MX {
@@ -56,12 +57,25 @@ impl RDataOperation for MX {
         Ok(())
     }
 
-    fn encode(&self, raw: &mut Vec<u8>, is_compressed: bool) -> Result<(), Error> {
-        raw.extend_from_slice(&self.preference.to_be_bytes());
-        raw.extend_from_slice(
-            &encode_domain_name_wrap(self.exchange.as_str(), raw, is_compressed).to_vec(),
-        );
+    // fn encode(&self, raw: &mut Vec<u8>, is_compressed: bool) -> Result<(), Error> {
+    //     raw.extend_from_slice(&self.preference.to_be_bytes());
+    //     raw.extend_from_slice(
+    //         &encode_domain_name_wrap(self.exchange.as_str(), raw, is_compressed).to_vec(),
+    //     );
 
-        Ok(())
+    //     Ok(())
+    // }
+
+    fn encode(&self, hm: &HashMap<String, usize>, is_compressed: bool) -> Result<Vec<u8>, Error> {
+        let mut r = vec![];
+
+        r.extend_from_slice(&self.preference.to_be_bytes());
+        r.extend_from_slice(&encode_domain_name_wrap(
+            self.exchange.as_str(),
+            hm,
+            is_compressed,
+        )?);
+
+        Ok(r)
     }
 }

@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::{
     labels::Labels,
     rdata::{RDataOperation, RDataType},
@@ -195,25 +197,28 @@ impl ResourceRecord {
         return self;
     }
 
-    pub fn encode(&self, raw: &mut Vec<u8>, is_compressed: bool) -> Result<(), Error> {
+    pub fn encode(
+        &self,
+        hm: &HashMap<String, usize>,
+        is_compressed: bool,
+    ) -> Result<Vec<u8>, Error> {
+        let mut r = vec![];
         // encode names
-        for v in self.name.as_bytes() {
-            raw.push(*v);
-        }
-        raw.push(b'\x00');
+        r.extend_from_slice(self.name.as_bytes());
+        r.push(b'\x00');
 
         // encode type
-        raw.extend_from_slice(&self.typ.to_be_bytes());
+        r.extend_from_slice(&self.typ.to_be_bytes());
         // encode class
-        raw.extend_from_slice(&self.class.to_be_bytes());
+        r.extend_from_slice(&self.class.to_be_bytes());
         // encode class
-        raw.extend_from_slice(&self.ttl.to_be_bytes());
+        r.extend_from_slice(&self.ttl.to_be_bytes());
         // encode length
-        raw.extend_from_slice(&self.rdlength.to_be_bytes());
+        r.extend_from_slice(&self.rdlength.to_be_bytes());
         // encode rdata
-        self.rdata.encode(raw, is_compressed)?;
+        r.extend_from_slice(&self.rdata.encode(hm, is_compressed)?);
 
-        Ok(())
+        Ok(r)
     }
 
     pub fn rdata(&self) -> &RDataType {
@@ -237,13 +242,18 @@ impl RRs {
         self.0.push(rr);
     }
 
-    pub fn encode(&self, raw: &mut Vec<u8>, is_compressed: bool) -> Result<(), Error> {
+    pub fn encode(
+        &self,
+        hm: &HashMap<String, usize>,
+        is_compressed: bool,
+    ) -> Result<Vec<u8>, Error> {
+        let mut r = vec![];
         for rr in &self.0 {
             // encode names
-            rr.clone().borrow().encode(raw, is_compressed)?
+            r.extend_from_slice(&rr.clone().borrow().encode(hm, is_compressed)?);
         }
 
-        Ok(())
+        Ok(r)
     }
 }
 

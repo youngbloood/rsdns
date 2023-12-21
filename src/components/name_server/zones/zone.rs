@@ -3,7 +3,6 @@ use super::master_file::{DefaultMasterFiles, MasterFileOperation};
 use super::DomainTree;
 use crate::dns::{Question, RcRf, ResourceRecord};
 use anyhow::{Error, Ok};
-use std::borrow::BorrowMut;
 use std::collections::HashMap;
 use std::{cell::RefCell, rc::Rc};
 

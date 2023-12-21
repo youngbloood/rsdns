@@ -1,7 +1,7 @@
 use super::header::Header;
-use super::question::Question;
+use super::question::Questions;
 use super::rr::RRs;
-use super::{Class, RcRf, ResourceRecord, Type};
+use super::{Class, Question, RcRf, ResourceRecord, Type};
 use anyhow::Error;
 use std::cell::RefCell;
 use std::rc::Rc;
@@ -28,7 +28,7 @@ pub struct DNS {
     _raw: Vec<u8>,
 
     head: Header,
-    ques: Vec<Question>,
+    ques: Questions,
     answers: RRs,
     authority: RRs,
     additional: RRs,
@@ -39,7 +39,7 @@ impl DNS {
         Self {
             _raw: vec![],
             head: Header::new(),
-            ques: vec![],
+            ques: Questions::new(),
             answers: RRs::new(),
             authority: RRs::new(),
             additional: RRs::new(),
@@ -56,7 +56,7 @@ impl DNS {
             _raw: raw.to_vec(),
 
             head: Header::from(raw, &mut offset),
-            ques: vec![],
+            ques: Questions::new(),
             answers: RRs::new(),
             authority: RRs::new(),
             additional: RRs::new(),
@@ -96,7 +96,7 @@ impl DNS {
         return &mut self.head;
     }
 
-    pub fn ques(&mut self) -> &mut Vec<Question> {
+    pub fn ques(&mut self) -> &mut Questions {
         return &mut self.ques;
     }
 
@@ -134,13 +134,12 @@ impl DNS {
         self.head.with_arcount(self.additional.len() as u16);
 
         result.extend_from_slice(&self.head.get_0());
-        for ques in &self.ques {
-            result.extend_from_slice(&ques.encode());
-        }
+        let (encoded_ques, domain_map) = self.ques.encode();
+        result.extend_from_slice(&encoded_ques);
 
-        self.answers.encode(&mut result, is_compressed)?;
-        self.authority.encode(&mut result, is_compressed)?;
-        self.additional.encode(&mut result, is_compressed)?;
+        result.extend_from_slice(&self.answers.encode(&domain_map, is_compressed)?);
+        result.extend_from_slice(&self.authority.encode(&domain_map, is_compressed)?);
+        result.extend_from_slice(&self.additional.encode(&domain_map, is_compressed)?);
 
         return Ok(result);
     }

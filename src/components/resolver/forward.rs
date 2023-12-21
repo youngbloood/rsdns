@@ -72,7 +72,7 @@ mod tests {
     use super::*;
     use crate::{
         dns::{
-            self, Class, Type, CLASS_HS, CLASS_IN, CLASS_WILDCARDS, TYPE_A, TYPE_AXFR, TYPE_TXT,
+            Class, Type, CLASS_HS, CLASS_IN, CLASS_WILDCARDS, TYPE_A, TYPE_AXFR, TYPE_TXT,
             TYPE_WILDCARDS,
         },
         DNS,
@@ -135,8 +135,6 @@ mod tests {
     #[test]
     fn test_default_forward_forward_batch() {
         // data from https://zh.wikipedia.org/wiki/%E6%9C%80%E5%8F%97%E6%AC%A2%E8%BF%8E%E7%BD%91%E7%AB%99%E5%88%97%E8%A1%A8
-        // 1-10
-
         let domains: &[&[&str]] = &[
             &[
                 "google.com",

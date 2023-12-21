@@ -17,6 +17,7 @@ depends on the domain where it is found.
 
 use super::RDataOperation;
 use anyhow::Error;
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct TXT(pub String);
@@ -37,9 +38,7 @@ impl RDataOperation for TXT {
         Ok(())
     }
 
-    fn encode(&self, raw: &mut Vec<u8>, _is_compressed: bool) -> Result<(), Error> {
-        raw.extend_from_slice(self.0.as_bytes());
-
-        Ok(())
+    fn encode(&self, _hm: &HashMap<String, usize>, _is_compressed: bool) -> Result<Vec<u8>, Error> {
+        Ok(self.0.as_bytes().to_vec())
     }
 }

@@ -26,6 +26,7 @@ when talking between machines or operating systems of the same type.
 use super::RDataOperation;
 use crate::dns::rdata::{parse_charactor_string, ERR_RDATE_MSG};
 use anyhow::{anyhow, Error};
+use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct HInfo {
@@ -60,10 +61,11 @@ impl RDataOperation for HInfo {
         Ok(())
     }
 
-    fn encode(&self, raw: &mut Vec<u8>, _is_compressed: bool) -> Result<(), Error> {
-        raw.extend_from_slice(self.cpu.as_bytes());
-        raw.extend_from_slice(self.os.as_bytes());
+    fn encode(&self, _hm: &HashMap<String, usize>, _is_compressed: bool) -> Result<Vec<u8>, Error> {
+        let mut r = vec![];
+        r.extend_from_slice(self.cpu.as_bytes());
+        r.extend_from_slice(self.os.as_bytes());
 
-        Ok(())
+        Ok(r)
     }
 }

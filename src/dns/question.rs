@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use super::{labels::Labels, Class, Type};
 use anyhow::Error;
 
@@ -22,6 +24,9 @@ contains QDCOUNT (usually 1) entries, each of the following format:
 */
 #[derive(Debug)]
 pub struct Question {
+    // record the question length. Not in standard Question protocol
+    // init with 5: 2 byte qtype, 2 byte qclass, and 1 byte '\x00' of end in qname
+    length: usize,
     /**
     a domain name represented as a sequence of labels, where
     each label consists of a length octet followed by that
@@ -53,6 +58,7 @@ impl Question {
             qname: Labels::new(),
             qtype: 0,
             qclass: 0,
+            length: 5,
         }
     }
 
@@ -66,6 +72,7 @@ impl Question {
             qname: Labels::new(),
             qtype: 0,
             qclass: 0,
+            length: 5,
         };
 
         // parse domain name
@@ -93,6 +100,7 @@ impl Question {
 
     pub fn with_name(&mut self, name: &str) -> &mut Self {
         self.qname.0.push(name.to_string());
+        self.length += 1 + name.len();
         return self;
     }
 
@@ -136,6 +144,40 @@ impl Question {
         }
 
         return result;
+    }
+}
+
+#[derive(Debug)]
+pub struct Questions(pub Vec<Question>);
+
+impl Questions {
+    pub fn new() -> Self {
+        Self { 0: vec![] }
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn push(&mut self, ques: Question) {
+        self.0.push(ques);
+    }
+
+    pub fn pop(&mut self) -> Option<Question> {
+        self.0.pop()
+    }
+
+    pub fn encode(&self) -> (Vec<u8>, HashMap<String, usize>) {
+        let mut r = vec![];
+        let mut hm = HashMap::<String, usize>::new();
+        let mut offset = 12;
+        for ques in &self.0 {
+            r.extend_from_slice(&ques.encode());
+            hm.insert(ques.qname().encode_to_str().to_string(), offset);
+            offset += ques.length;
+        }
+
+        (r, hm)
     }
 }
 
@@ -190,6 +232,7 @@ mod tests {
             qname: labels,
             qtype: 4386,
             qclass: 13124,
+            length: 0,
         };
 
         let raw1: Vec<u8> = vec![

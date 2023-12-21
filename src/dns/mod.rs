@@ -1,14 +1,14 @@
 pub mod dns;
 pub mod header;
-pub mod labels;
+mod labels;
 pub mod question;
-pub mod rdata;
-pub mod rr;
+mod rdata;
+mod rr;
 
 pub use dns::DNS;
 pub use header::Header;
 pub use question::Question;
-pub use rr::{RRs, ResourceRecord};
+pub use rr::ResourceRecord;
 use std::{cell::RefCell, rc::Rc};
 
 pub type Type = u16;
