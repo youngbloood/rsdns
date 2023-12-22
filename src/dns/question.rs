@@ -1,6 +1,4 @@
-use std::collections::HashMap;
-
-use super::{labels::Labels, Class, Type};
+use super::{compress_list::CompressList, labels::Labels, Class, Type};
 use anyhow::Error;
 
 /**
@@ -87,6 +85,11 @@ impl Question {
         ques.qclass = u16::from_be_bytes(raw[*offset..*offset + 2].try_into()?);
         *offset += 2;
 
+        for v in &ques.qname.0 {
+            ques.length += v.len();
+        }
+        ques.length += &ques.qname.0.len();
+
         return Ok(ques);
     }
 
@@ -167,17 +170,14 @@ impl Questions {
         self.0.pop()
     }
 
-    pub fn encode(&self) -> (Vec<u8>, HashMap<String, usize>) {
-        let mut r = vec![];
-        let mut hm = HashMap::<String, usize>::new();
+    pub fn encode(&self, raw: &mut Vec<u8>, cl: &mut CompressList) {
         let mut offset = 12;
         for ques in &self.0 {
-            r.extend_from_slice(&ques.encode());
-            hm.insert(ques.qname().encode_to_str().to_string(), offset);
+            raw.extend_from_slice(&ques.encode());
+            let domain = ques.qname().encode_to_str();
+            cl.push(domain.as_str(), offset);
             offset += ques.length;
         }
-
-        (r, hm)
     }
 }
 
@@ -227,7 +227,6 @@ mod tests {
         labels
             .0
             .extend_from_slice(&vec!["google".to_string(), "com".to_string()]);
-        println!("labels = {:?}", &labels);
         let ques = Question {
             qname: labels,
             qtype: 4386,

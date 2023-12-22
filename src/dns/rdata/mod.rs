@@ -34,12 +34,14 @@ use self::{
     ns::NS, null::Null, ptr::PTR, soa::SOA, txt::TXT, wks::WKS,
 };
 use super::{
-    labels::Labels, Type, TYPE_A, TYPE_CNAME, TYPE_HINFO, TYPE_MB, TYPE_MD, TYPE_MF, TYPE_MG,
-    TYPE_MINFO, TYPE_MR, TYPE_MX, TYPE_NS, TYPE_NULL, TYPE_PTR, TYPE_SOA, TYPE_TXT, TYPE_WKS,
+    compress_list::CompressList, labels::Labels, Type, TYPE_A, TYPE_CNAME, TYPE_HINFO, TYPE_MB,
+    TYPE_MD, TYPE_MF, TYPE_MG, TYPE_MINFO, TYPE_MR, TYPE_MX, TYPE_NS, TYPE_NULL, TYPE_PTR,
+    TYPE_SOA, TYPE_TXT, TYPE_WKS,
 };
 use crate::util;
 use anyhow::{bail, Error};
-use std::{collections::HashMap, fmt::Debug};
+use nom::AsBytes;
+use std::fmt::Debug;
 
 const ERR_RDATE_MSG: &str = "not completed rdate";
 const ERR_RDATE_TYPE: &str = "not standard rdata type";
@@ -54,7 +56,12 @@ pub trait RDataOperation: Debug {
     fn decode(&mut self, raw: &[u8], rdata: &[u8]) -> Result<(), Error>;
 
     /// encode: encode the concrete rdata object to u8 slice.
-    fn encode(&self, hm: &HashMap<String, usize>, is_compressed: bool) -> Result<Vec<u8>, Error>;
+    fn encode(
+        &self,
+        raw: &mut Vec<u8>,
+        cl: &mut CompressList,
+        is_compressed: bool,
+    ) -> Result<(), Error>;
 }
 
 /**
@@ -132,24 +139,29 @@ impl RDataOperation for RDataType {
         }
     }
 
-    fn encode(&self, hm: &HashMap<String, usize>, is_compressed: bool) -> Result<Vec<u8>, Error> {
+    fn encode(
+        &self,
+        raw: &mut Vec<u8>,
+        cl: &mut CompressList,
+        is_compressed: bool,
+    ) -> Result<(), Error> {
         match self {
-            RDataType::CName(cname) => cname.encode(hm, is_compressed),
-            RDataType::HInfo(hinfo) => hinfo.encode(hm, is_compressed),
-            RDataType::MB(mb) => mb.encode(hm, is_compressed),
-            RDataType::MD(md) => md.encode(hm, is_compressed),
-            RDataType::MF(mf) => mf.encode(hm, is_compressed),
-            RDataType::MG(mg) => mg.encode(hm, is_compressed),
-            RDataType::MInfo(minfo) => minfo.encode(hm, is_compressed),
-            RDataType::MR(mr) => mr.encode(hm, is_compressed),
-            RDataType::MX(mx) => mx.encode(hm, is_compressed),
-            RDataType::Null(null) => null.encode(hm, is_compressed),
-            RDataType::NS(ns) => ns.encode(hm, is_compressed),
-            RDataType::PTR(ptr) => ptr.encode(hm, is_compressed),
-            RDataType::SOA(soa) => soa.encode(hm, is_compressed),
-            RDataType::TXT(txt) => txt.encode(hm, is_compressed),
-            RDataType::A(a) => a.encode(hm, is_compressed),
-            RDataType::WKS(wks) => wks.encode(hm, is_compressed),
+            RDataType::CName(cname) => cname.encode(raw, cl, is_compressed),
+            RDataType::HInfo(hinfo) => hinfo.encode(raw, cl, is_compressed),
+            RDataType::MB(mb) => mb.encode(raw, cl, is_compressed),
+            RDataType::MD(md) => md.encode(raw, cl, is_compressed),
+            RDataType::MF(mf) => mf.encode(raw, cl, is_compressed),
+            RDataType::MG(mg) => mg.encode(raw, cl, is_compressed),
+            RDataType::MInfo(minfo) => minfo.encode(raw, cl, is_compressed),
+            RDataType::MR(mr) => mr.encode(raw, cl, is_compressed),
+            RDataType::MX(mx) => mx.encode(raw, cl, is_compressed),
+            RDataType::Null(null) => null.encode(raw, cl, is_compressed),
+            RDataType::NS(ns) => ns.encode(raw, cl, is_compressed),
+            RDataType::PTR(ptr) => ptr.encode(raw, cl, is_compressed),
+            RDataType::SOA(soa) => soa.encode(raw, cl, is_compressed),
+            RDataType::TXT(txt) => txt.encode(raw, cl, is_compressed),
+            RDataType::A(a) => a.encode(raw, cl, is_compressed),
+            RDataType::WKS(wks) => wks.encode(raw, cl, is_compressed),
             _ => bail!(ERR_RDATE_TYPE),
         }
     }
@@ -224,53 +236,76 @@ pub fn encode_domain_name(domain_name: &str) -> Vec<u8> {
 
 pub fn encode_domain_name_wrap(
     domain_name: &str,
-    hm: &HashMap<String, usize>,
+    cl: &mut CompressList,
     is_compressed: bool,
+    raw_offset: usize,
 ) -> Result<Vec<u8>, Error> {
     if !is_compressed {
         return Ok(encode_domain_name(domain_name));
     }
-
     let encode = |domain: &str| -> Vec<u8> {
         let mut r: Vec<u8> = vec![];
         let mut names = domain.split(".").into_iter();
         let mut iter = names.next();
-        while iter.is_some() {
+        while iter.is_some() && iter.unwrap().len() != 0 {
             r.push(iter.unwrap().len() as u8);
             r.extend_from_slice(&iter.unwrap().as_bytes().to_vec());
             iter = names.next();
         }
+
         r
     };
 
-    for (domain, offset) in hm {
-        match domain_name.find(domain) {
+    for (domain, offset) in cl.get_0() {
+        match domain_name.find(&*domain) {
             Some(pos) => {
-                if is_compressed {
-                    let mut list = vec![];
-
-                    // encode the preffix str exclude the domain in domain_name
-                    list.extend_from_slice(&encode(&domain_name[..pos]));
-
-                    // pointer: offset
-                    let mut compressed_unit = (*offset as u16).to_be_bytes();
-                    // pointer: compressed flag
-                    compressed_unit[0] |= 0b1100_0000;
-                    list.extend(compressed_unit);
-
-                    // encode the suffix str exclude the domain in domain_name
-                    if domain_name[pos + domain.len()..].len() != 0 {
-                        list.extend_from_slice(&encode(&domain_name[pos + domain.len()..]));
-                        list.push(b'\x00');
-                    }
-
-                    return Ok(list);
+                // don't need compress this domain, cause the length equal the compressed length
+                if domain.len() <= 2 {
+                    continue;
                 }
-                break;
+
+                // guarant the side of the domain in domain_name is dot
+                // Example:
+                // domain_name is "dns.Facebook.com"
+                // but domain in CompressList is "ns.Facebook.com", maybe it is a substring of "a.ns.Facebook.com" add to CompressList
+                // then will match domain_name.find(&*domain) to Some(_) branch
+                // but this should not matched and don't compress
+                // so we will check over the domain's side weather is dot
+                if (pos != 0 && domain_name.as_bytes()[pos - 1] != b'.')
+                    || pos + domain.len() + 1 < domain_name.len()
+                        && domain_name.as_bytes()[pos + domain.len() + 1] != b'.'
+                {
+                    continue;
+                }
+
+                let mut list = vec![];
+                // encode the preffix str exclude the domain in domain_name
+                if domain_name[..pos].len() != 0 {
+                    list.extend_from_slice(&encode(&domain_name[..pos]));
+                }
+                // pointer: offset
+                let mut compressed_unit = (*offset as u16).to_be_bytes();
+                // pointer: compressed flag
+                compressed_unit[0] |= 0b1100_0000;
+                list.extend(compressed_unit);
+
+                // encode the suffix str exclude the domain in domain_name
+                if domain_name[pos + domain.len()..].len() != 0 {
+                    list.extend_from_slice(&encode(&domain_name[pos + domain.len()..]));
+                    list.push(b'\x00');
+                }
+
+                // update the exist domain_name in CompressList
+                cl.push(domain_name, raw_offset);
+                return Ok(list);
             }
-            None => break,
+            None => continue,
         }
     }
+
+    // update the exist domain_name in CompressList
+    cl.push(domain_name, raw_offset);
+
     Ok(encode_domain_name(domain_name))
 }
 // /**

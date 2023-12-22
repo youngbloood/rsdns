@@ -21,9 +21,9 @@ decimal numbers separated by dots without any imbedded spaces (e.g.,
  */
 
 use super::RDataOperation;
-use crate::dns::rdata::ERR_RDATE_MSG;
+use crate::dns::{compress_list::CompressList, rdata::ERR_RDATE_MSG};
 use anyhow::{anyhow, Error, Ok};
-use std::{collections::HashMap, net::Ipv4Addr};
+use std::net::Ipv4Addr;
 
 #[derive(Debug)]
 pub struct A(pub Ipv4Addr);
@@ -49,7 +49,14 @@ impl RDataOperation for A {
         Ok(())
     }
 
-    fn encode(&self, _hm: &HashMap<String, usize>, _is_compressed: bool) -> Result<Vec<u8>, Error> {
-        Ok(self.0.octets().to_vec())
+    fn encode(
+        &self,
+        raw: &mut Vec<u8>,
+        _hm: &mut CompressList,
+        _is_compressed: bool,
+    ) -> Result<(), Error> {
+        raw.extend_from_slice(&self.0.octets().to_vec());
+
+        Ok(())
     }
 }

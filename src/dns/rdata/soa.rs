@@ -69,9 +69,8 @@ change the SOA RR with known semantics.
  */
 
 use super::{encode_domain_name_wrap, parse_domain_name, RDataOperation};
-use crate::dns::rdata::ERR_RDATE_MSG;
+use crate::dns::{compress_list::CompressList, rdata::ERR_RDATE_MSG};
 use anyhow::{anyhow, Error, Ok};
-use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct SOA {
@@ -148,24 +147,30 @@ impl RDataOperation for SOA {
         Ok(())
     }
 
-    fn encode(&self, hm: &HashMap<String, usize>, is_compressed: bool) -> Result<Vec<u8>, Error> {
-        let mut r = vec![];
-        r.extend_from_slice(&encode_domain_name_wrap(
+    fn encode(
+        &self,
+        raw: &mut Vec<u8>,
+        cl: &mut CompressList,
+        is_compressed: bool,
+    ) -> Result<(), Error> {
+        raw.extend_from_slice(&encode_domain_name_wrap(
             self.mname.as_str(),
-            hm,
+            cl,
             is_compressed,
+            raw.len(),
         )?);
-        r.extend_from_slice(&encode_domain_name_wrap(
+        raw.extend_from_slice(&encode_domain_name_wrap(
             self.rname.as_str(),
-            hm,
+            cl,
             is_compressed,
+            raw.len(),
         )?);
-        r.extend_from_slice(&self.serial.to_be_bytes());
-        r.extend_from_slice(&self.refresh.to_be_bytes());
-        r.extend_from_slice(&self.retry.to_be_bytes());
-        r.extend_from_slice(&self.expire.to_be_bytes());
-        r.extend_from_slice(&self.minimum.to_be_bytes());
+        raw.extend_from_slice(&self.serial.to_be_bytes());
+        raw.extend_from_slice(&self.refresh.to_be_bytes());
+        raw.extend_from_slice(&self.retry.to_be_bytes());
+        raw.extend_from_slice(&self.expire.to_be_bytes());
+        raw.extend_from_slice(&self.minimum.to_be_bytes());
 
-        Ok(r)
+        Ok(())
     }
 }

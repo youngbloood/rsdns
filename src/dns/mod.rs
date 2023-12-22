@@ -1,3 +1,4 @@
+mod compress_list;
 pub mod dns;
 pub mod header;
 mod labels;

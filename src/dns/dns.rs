@@ -2,8 +2,10 @@ use super::header::Header;
 use super::question::Questions;
 use super::rr::RRs;
 use super::{Class, Question, RcRf, ResourceRecord, Type};
+use crate::dns::compress_list::CompressList;
 use anyhow::Error;
 use std::cell::RefCell;
+use std::fmt::Debug;
 use std::rc::Rc;
 
 /**
@@ -26,6 +28,7 @@ use std::rc::Rc;
 #[derive(Debug)]
 pub struct DNS {
     _raw: Vec<u8>,
+    _is_compressed: bool,
 
     head: Header,
     ques: Questions,
@@ -38,6 +41,8 @@ impl DNS {
     pub fn new() -> Self {
         Self {
             _raw: vec![],
+            _is_compressed: false,
+
             head: Header::new(),
             ques: Questions::new(),
             answers: RRs::new(),
@@ -45,6 +50,15 @@ impl DNS {
             additional: RRs::new(),
         }
     }
+
+    pub fn raw(&self) -> &Vec<u8> {
+        return &self._raw;
+    }
+
+    pub fn is_compressed(&self) -> bool {
+        self._is_compressed
+    }
+
     pub fn from(raw: &[u8]) -> Result<Self, Error> {
         let dns_packet_err = Err(Error::msg("the dns package not incomplete"));
         if raw.len() < 12 {
@@ -54,6 +68,7 @@ impl DNS {
         let mut offset = 0;
         let mut dns = Self {
             _raw: raw.to_vec(),
+            _is_compressed: false,
 
             head: Header::from(raw, &mut offset),
             ques: Questions::new(),
@@ -73,20 +88,20 @@ impl DNS {
         }
         // parse anwer
         for _i in 0..dns.head.ancount() {
-            let rr = ResourceRecord::from(&raw, &mut offset)?;
+            let rr = ResourceRecord::from(&raw, &mut offset, &mut dns._is_compressed)?;
             dns.answers.0.push(Rc::new(RefCell::new(rr)));
         }
 
         // parse authority
         for _i in 0..dns.head.nscount() {
-            let rr = ResourceRecord::from(&raw, &mut offset)?;
-            dns.answers.0.push(Rc::new(RefCell::new(rr)));
+            let rr = ResourceRecord::from(&raw, &mut offset, &mut dns._is_compressed)?;
+            dns.authority.0.push(Rc::new(RefCell::new(rr)));
         }
 
         // parse additional
         for _i in 0..dns.head.arcount() {
-            let rr = ResourceRecord::from(&raw, &mut offset)?;
-            dns.answers.0.push(Rc::new(RefCell::new(rr)));
+            let rr = ResourceRecord::from(&raw, &mut offset, &mut dns._is_compressed)?;
+            dns.additional.0.push(Rc::new(RefCell::new(rr)));
         }
 
         return Ok(dns);
@@ -128,18 +143,24 @@ impl DNS {
     pub fn encode(&mut self, is_compressed: bool) -> Result<Vec<u8>, Error> {
         let mut result = Vec::<u8>::new();
 
+        // set head
         self.head.with_qdcount(self.ques.len() as u16);
         self.head.with_ancount(self.answers.len() as u16);
         self.head.with_nscount(self.authority.len() as u16);
         self.head.with_arcount(self.additional.len() as u16);
 
+        // encode head
         result.extend_from_slice(&self.head.get_0());
-        let (encoded_ques, domain_map) = self.ques.encode();
-        result.extend_from_slice(&encoded_ques);
-
-        result.extend_from_slice(&self.answers.encode(&domain_map, is_compressed)?);
-        result.extend_from_slice(&self.authority.encode(&domain_map, is_compressed)?);
-        result.extend_from_slice(&self.additional.encode(&domain_map, is_compressed)?);
+        let mut cl = CompressList::new();
+        // encode questions
+        self.ques.encode(&mut result, &mut cl);
+        // encode answers
+        self.answers.encode(&mut result, &mut cl, is_compressed)?;
+        // encode authority
+        self.authority.encode(&mut result, &mut cl, is_compressed)?;
+        // encode additional
+        self.additional
+            .encode(&mut result, &mut cl, is_compressed)?;
 
         return Ok(result);
     }
@@ -152,7 +173,18 @@ mod tests {
     #[test]
     fn test_dns_from() {
         // these data come from a real source data. from: 8.8.8.8:53
-        let cases: &[(&[u8], String, usize)] = &[
+        let cases: &[(&[u8], String, usize, bool)] = &[
+            (
+                &[
+                    59, 30, 129, 128, 0, 1, 0, 0, 0, 1, 0, 0, 8, 70, 97, 99, 101, 98, 111, 111,
+                    107, 3, 99, 111, 109, 0, 0, 3, 0, 1, 192, 12, 0, 6, 0, 1, 0, 0, 7, 8, 0, 33, 1,
+                    97, 2, 110, 115, 192, 12, 3, 100, 110, 115, 192, 12, 245, 137, 22, 81, 0, 0,
+                    56, 64, 0, 0, 7, 8, 0, 9, 58, 128, 0, 0, 1, 44,
+                ],
+                "Facebook.com".to_string(),
+                0,
+                true,
+            ),
             // compressed msg
             (
                 &[
@@ -171,6 +203,7 @@ mod tests {
                 ],
                 "baidu.com".to_string(),
                 6,
+                true,
             ),
             // compressed msg
             (
@@ -190,6 +223,7 @@ mod tests {
                 ],
                 "baidu.com".to_string(),
                 6,
+                true,
             ),
             // uncompressed msg
             (
@@ -205,6 +239,7 @@ mod tests {
                 ],
                 "google.com".to_string(),
                 1,
+                false,
             ),
             (
                 &[
@@ -247,6 +282,7 @@ mod tests {
                 ],
                 "baidu.com".to_string(),
                 5,
+                true,
             ),
             (
                 &[
@@ -256,6 +292,7 @@ mod tests {
                 ],
                 "baidu.com".to_string(),
                 2,
+                true,
             ),
             (
                 &[
@@ -268,14 +305,22 @@ mod tests {
                 ],
                 "yahoo.co.jp".to_string(),
                 4,
+                true,
             ),
         ];
 
         for cs in cases {
-            let dns = DNS::from(&cs.0.to_vec()).unwrap();
-            println!("parsed dns = {:?}", dns);
+            let mut dns = DNS::from(&cs.0.to_vec()).unwrap();
             assert_eq!(cs.2, dns.answers.len());
-            assert_eq!(cs.1, dns.answers.0.get(0).as_ref().unwrap().borrow().name());
+            if cs.2 != 0 {
+                assert_eq!(cs.1, dns.answers.0.get(0).as_ref().unwrap().borrow().name());
+            }
+
+            println!("dns = {:?}", dns);
+            let compression = dns.encode(cs.3).unwrap();
+            assert_eq!(cs.0, compression);
+            let parse_self_dns = DNS::from(&compression.to_vec()).unwrap();
+            println!("parse_encoded_dns: dns = {:?}", parse_self_dns);
         }
     }
 }

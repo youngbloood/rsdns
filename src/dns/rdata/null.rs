@@ -17,8 +17,8 @@ experimental extensions of the DNS.
  */
 
 use super::RDataOperation;
+use crate::dns::compress_list::CompressList;
 use anyhow::Error;
-use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct Null(Vec<u8>);
@@ -39,7 +39,14 @@ impl RDataOperation for Null {
         Ok(())
     }
 
-    fn encode(&self, _hm: &HashMap<String, usize>, _is_compressed: bool) -> Result<Vec<u8>, Error> {
-        Ok(self.0.to_vec())
+    fn encode(
+        &self,
+        raw: &mut Vec<u8>,
+        _hm: &mut CompressList,
+        _is_compressed: bool,
+    ) -> Result<(), Error> {
+        raw.extend_from_slice(&self.0.to_vec());
+
+        Ok(())
     }
 }

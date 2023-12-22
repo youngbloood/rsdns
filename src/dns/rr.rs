@@ -1,8 +1,7 @@
-use std::collections::HashMap;
-
 use super::{
+    compress_list::CompressList,
     labels::Labels,
-    rdata::{RDataOperation, RDataType},
+    rdata::{encode_domain_name_wrap, RDataOperation, RDataType},
     Class, RcRf, Type, VecRcRf,
 };
 use crate::util;
@@ -82,7 +81,7 @@ impl ResourceRecord {
         }
     }
 
-    pub fn from(raw: &[u8], offset: &mut usize) -> Result<Self, Error> {
+    pub fn from(raw: &[u8], offset: &mut usize, is_compressed: &mut bool) -> Result<Self, Error> {
         let mut rr = Self::new();
         let packet_err = Error::msg("parse rr failed cause the raw not completed");
 
@@ -90,8 +89,9 @@ impl ResourceRecord {
             return Err(packet_err);
         }
 
-        let (compressed_offset, is_compressed) = util::is_compressed_wrap(&raw[*offset..]);
-        if is_compressed {
+        let (compressed_offset, _is_compressed) = util::is_compressed_wrap(&raw[*offset..]);
+        if _is_compressed {
+            *is_compressed = _is_compressed;
             // parse domain_name from the pointer position, that point a labels start position
             *offset += 2;
             let mut domain_name_offset = compressed_offset;
@@ -199,26 +199,30 @@ impl ResourceRecord {
 
     pub fn encode(
         &self,
-        hm: &HashMap<String, usize>,
+        raw: &mut Vec<u8>,
+        cl: &mut CompressList,
         is_compressed: bool,
-    ) -> Result<Vec<u8>, Error> {
-        let mut r = vec![];
+    ) -> Result<(), Error> {
         // encode names
-        r.extend_from_slice(self.name.as_bytes());
-        r.push(b'\x00');
+        raw.extend_from_slice(&encode_domain_name_wrap(
+            self.name.as_str(),
+            cl,
+            is_compressed,
+            raw.len(),
+        )?);
 
         // encode type
-        r.extend_from_slice(&self.typ.to_be_bytes());
+        raw.extend_from_slice(&self.typ.to_be_bytes());
         // encode class
-        r.extend_from_slice(&self.class.to_be_bytes());
+        raw.extend_from_slice(&self.class.to_be_bytes());
         // encode class
-        r.extend_from_slice(&self.ttl.to_be_bytes());
+        raw.extend_from_slice(&self.ttl.to_be_bytes());
         // encode length
-        r.extend_from_slice(&self.rdlength.to_be_bytes());
+        raw.extend_from_slice(&self.rdlength.to_be_bytes());
         // encode rdata
-        r.extend_from_slice(&self.rdata.encode(hm, is_compressed)?);
+        self.rdata.encode(raw, cl, is_compressed)?;
 
-        Ok(r)
+        Ok(())
     }
 
     pub fn rdata(&self) -> &RDataType {
@@ -244,16 +248,16 @@ impl RRs {
 
     pub fn encode(
         &self,
-        hm: &HashMap<String, usize>,
+        raw: &mut Vec<u8>,
+        cl: &mut CompressList,
         is_compressed: bool,
-    ) -> Result<Vec<u8>, Error> {
-        let mut r = vec![];
+    ) -> Result<(), Error> {
         for rr in &self.0 {
             // encode names
-            r.extend_from_slice(&rr.clone().borrow().encode(hm, is_compressed)?);
+            rr.clone().borrow().encode(raw, cl, is_compressed)?;
         }
 
-        Ok(r)
+        Ok(())
     }
 }
 

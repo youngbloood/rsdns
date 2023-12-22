@@ -33,9 +33,8 @@ with a mailing list.
  */
 
 use super::{encode_domain_name_wrap, parse_domain_name, RDataOperation};
-use crate::dns::rdata::ERR_RDATE_MSG;
+use crate::dns::{compress_list::CompressList, rdata::ERR_RDATE_MSG};
 use anyhow::{anyhow, Error};
-use std::collections::HashMap;
 
 #[derive(Debug)]
 pub struct MInfo {
@@ -67,19 +66,25 @@ impl RDataOperation for MInfo {
         Ok(())
     }
 
-    fn encode(&self, hm: &HashMap<String, usize>, is_compressed: bool) -> Result<Vec<u8>, Error> {
-        let mut r = vec![];
-        r.extend_from_slice(&encode_domain_name_wrap(
+    fn encode(
+        &self,
+        raw: &mut Vec<u8>,
+        cl: &mut CompressList,
+        is_compressed: bool,
+    ) -> Result<(), Error> {
+        raw.extend_from_slice(&encode_domain_name_wrap(
             self.rmail_bx.as_str(),
-            hm,
+            cl,
             is_compressed,
+            raw.len(),
         )?);
-        r.extend_from_slice(&encode_domain_name_wrap(
+        raw.extend_from_slice(&encode_domain_name_wrap(
             self.email_bx.as_str(),
-            hm,
+            cl,
             is_compressed,
+            raw.len(),
         )?);
 
-        Ok(r)
+        Ok(())
     }
 }
