@@ -1,5 +1,8 @@
 use nom::FindSubstring;
 
+/**
+CompressList: Save the domain_name(String) and offset(usize) as a tuple into Vector
+ */
 #[derive(Debug)]
 pub struct CompressList(Vec<(String, usize)>);
 
@@ -26,6 +29,10 @@ impl CompressList {
         return &self.0;
     }
 
+    /// Push the domain and the subdomain into CompressList.
+    /// eg: push the "mail.google.com"
+    /// then "mail.google.com", "mail.google", "google.com", "mail", "google", "com" will be pushed into CompressList.
+    /// the subdomain's offset decide by param offset
     pub fn push(&mut self, domain: &str, offset: usize) {
         let col: Vec<&str> = domain.split(".").collect();
         for i in 1..col.len() + 1 {

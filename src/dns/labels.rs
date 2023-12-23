@@ -58,6 +58,7 @@ impl Labels {
             label
                 .0
                 .push(String::from_utf8(raw[start..start + length].to_vec()).unwrap());
+            // TODO: 使用skip优化
             while length > 0 {
                 start += 1;
                 length -= 1;

@@ -40,7 +40,6 @@ use super::{
 };
 use crate::util;
 use anyhow::{bail, Error};
-use nom::AsBytes;
 use std::fmt::Debug;
 
 const ERR_RDATE_MSG: &str = "not completed rdate";
