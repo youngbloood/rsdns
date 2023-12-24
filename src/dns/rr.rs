@@ -103,6 +103,9 @@ impl ResourceRecord {
             rr.name = labels.encode_to_str();
         }
 
+        if *offset + 10 > raw.len() {
+            return Err(packet_err);
+        }
         // parse type
         rr.typ = u16::from_be_bytes(
             raw[*offset..*offset + 2]

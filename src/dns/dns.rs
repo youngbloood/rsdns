@@ -59,6 +59,26 @@ impl DNS {
         self._is_compressed
     }
 
+    pub fn from_fake(raw: &[u8]) -> Result<Self, Error> {
+        let mut offset = 0;
+        let mut dns = Self {
+            _raw: raw.to_vec(),
+            _is_compressed: false,
+            head: Header::from(raw, &mut offset),
+            ques: Questions::new(),
+            answers: RRs::new(),
+            authority: RRs::new(),
+            additional: RRs::new(),
+        };
+        // parse question
+        for _i in 0..dns.head.qdcount() {
+            let ques = Question::from(&raw, &mut offset)?;
+            dns.ques.push(ques);
+        }
+
+        Ok(dns)
+    }
+
     pub fn from(raw: &[u8]) -> Result<Self, Error> {
         let dns_packet_err = Err(Error::msg("the dns package not incomplete"));
         if raw.len() < 12 {
@@ -169,158 +189,92 @@ impl DNS {
 #[cfg(test)]
 mod tests {
     use crate::DNS;
+    use std::fs;
 
     #[test]
-    fn test_dns_from() {
-        // these data come from a real source data. from: 8.8.8.8:53
-        let cases: &[(&[u8], String, usize, bool)] = &[
-            (
-                &[
-                    59, 30, 129, 128, 0, 1, 0, 0, 0, 1, 0, 0, 8, 70, 97, 99, 101, 98, 111, 111,
-                    107, 3, 99, 111, 109, 0, 0, 3, 0, 1, 192, 12, 0, 6, 0, 1, 0, 0, 7, 8, 0, 33, 1,
-                    97, 2, 110, 115, 192, 12, 3, 100, 110, 115, 192, 12, 245, 137, 22, 81, 0, 0,
-                    56, 64, 0, 0, 7, 8, 0, 9, 58, 128, 0, 0, 1, 44,
-                ],
-                "Facebook.com".to_string(),
-                0,
-                true,
-            ),
-            // compressed msg
-            (
-                &[
-                    54, 174, 129, 128, 0, 1, 0, 6, 0, 0, 0, 0, // header 12 byte
-                    // question
-                    5, 98, 97, 105, 100, 117, 3, 99, 111, 109, 0, // question name:baidu.com
-                    0, 15, 0, 1, // question type and class
-                    // answer
-                    192, 12, 0, 15, 0, 1, 0, 0, 21, 22, 0, 9, 0, 20, 4, 109, 120, 53, 48, 192, 12,
-                    192, 12, 0, 15, 0, 1, 0, 0, 21, 22, 0, 9, 0, 20, 4, 106, 112, 109, 120, 192,
-                    12, 192, 12, 0, 15, 0, 1, 0, 0, 21, 22, 0, 14, 0, 10, 2, 109, 120, 6, 109, 97,
-                    105, 108, 108, 98, 192, 12, 192, 12, 0, 15, 0, 1, 0, 0, 21, 22, 0, 8, 0, 20, 3,
-                    109, 120, 49, 192, 12, 192, 12, 0, 15, 0, 1, 0, 0, 21, 22, 0, 16, 0, 15, 2,
-                    109, 120, 1, 110, 6, 115, 104, 105, 102, 101, 110, 192, 18, 192, 12, 0, 15, 0,
-                    1, 0, 0, 21, 22, 0, 11, 0, 20, 6, 117, 115, 109, 120, 48, 49, 192, 12,
-                ],
-                "baidu.com".to_string(),
-                6,
-                true,
-            ),
-            // compressed msg
-            (
-                &[
-                    197, 142, 129, 128, 0, 1, 0, 6, 0, 0, 0, 0, // header 12 byte
-                    // question
-                    5, 98, 97, 105, 100, 117, 3, 99, 111, 109, 0, // question name:baidu.com
-                    0, 15, 0, 1, // question type and class
-                    // answer
-                    192, 12, 0, 15, 0, 1, 0, 0, 20, 34, 0, 14, 0, 10, 2, 109, 120, 6, 109, 97, 105,
-                    108, 108, 98, 192, 12, 192, 12, 0, 15, 0, 1, 0, 0, 20, 34, 0, 11, 0, 20, 6,
-                    117, 115, 109, 120, 48, 49, 192, 12, 192, 12, 0, 15, 0, 1, 0, 0, 20, 34, 0, 8,
-                    0, 20, 3, 109, 120, 49, 192, 12, 192, 12, 0, 15, 0, 1, 0, 0, 20, 34, 0, 9, 0,
-                    20, 4, 106, 112, 109, 120, 192, 12, 192, 12, 0, 15, 0, 1, 0, 0, 20, 34, 0, 9,
-                    0, 20, 4, 109, 120, 53, 48, 192, 12, 192, 12, 0, 15, 0, 1, 0, 0, 20, 34, 0, 16,
-                    0, 15, 2, 109, 120, 1, 110, 6, 115, 104, 105, 102, 101, 110, 192, 18,
-                ],
-                "baidu.com".to_string(),
-                6,
-                true,
-            ),
-            // uncompressed msg
-            (
-                &[
-                    106, 174, 133, 128, 0, 1, 0, 1, 0, 0, 0, 0, // header 12 byte
-                    // question
-                    6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109,
-                    0, // question name:google.com
-                    0, 15, 0, 1, // question type and class
-                    // answer
-                    6, 103, 111, 111, 103, 108, 101, 3, 99, 111, 109, 0, 0, 1, 0, 1, 0, 0, 0, 60, 0,
-                    4, 8, 7, 198, 46,
-                ],
-                "google.com".to_string(),
-                1,
-                false,
-            ),
-            (
-                &[
-                    96, 5, 129, 128, 0, 1, 0, 5, 0, 0, 0, 0, 5, 98, 97, 105, 100, 117, 3, 99, 111,
-                    109, 0, 0, 2, 0, 1, // rr1
-                    192, 12, // rr1.name
-                    0, 2, // rr1.typ
-                    0, 1, // rr1.class
-                    0, 0, 58, 151, // rr1.ttl
-                    0, 6, // rr1.rdlength
-                    3, 100, 110, 115, 192, 12, // rr1.rdata
-                    // rr2
-                    192, 12, // rr2.name
-                    0, 2, // rr2.typ
-                    0, 1, // rr2.class
-                    0, 0, 58, 151, // rr2.ttl
-                    0, 6, // rr2.rdlength
-                    3, 110, 115, 51, 192, 12, // rr2.rdata
-                    // rr3
-                    192, 12, // rr3.name
-                    0, 2, // rr3.typ
-                    0, 1, //  rr3.class
-                    0, 0, 58, 151, // rr3.ttl
-                    0, 6, // rr3.rdlength
-                    3, 110, 115, 55, 192, 12, // rr3.rdata
-                    // rr4
-                    192, 12, // rr4.name
-                    0, 2, // rr4.typ
-                    0, 1, //  rr4.class
-                    0, 0, 58, 151, // rr4.ttl
-                    0, 6, // rr4.rdlength
-                    3, 110, 115, 50, 192, 12, // rr4.rdata
-                    // rr5
-                    192, 12, // rr5.name
-                    0, 2, // rr5.typ
-                    0, 1, //  rr5.class
-                    0, 0, 58, 151, // rr5.ttl
-                    0, 6, // rr5.rdlength
-                    3, 110, 115, 52, 192, 12, // rr5.rdata
-                ],
-                "baidu.com".to_string(),
-                5,
-                true,
-            ),
-            (
-                &[
-                    160, 247, 129, 128, 0, 1, 0, 2, 0, 0, 0, 0, 5, 98, 97, 105, 100, 117, 3, 99,
-                    111, 109, 0, 0, 1, 0, 1, 192, 12, 0, 1, 0, 1, 0, 0, 1, 49, 0, 4, 110, 242, 68,
-                    66, 192, 12, 0, 1, 0, 1, 0, 0, 1, 49, 0, 4, 39, 156, 66, 10,
-                ],
-                "baidu.com".to_string(),
-                2,
-                true,
-            ),
-            (
-                &[
-                    227, 91, 129, 128, 0, 1, 0, 4, 0, 0, 0, 0, 5, 121, 97, 104, 111, 111, 2, 99,
-                    111, 2, 106, 112, 0, 0, 15, 0, 1, 192, 12, 0, 15, 0, 1, 0, 0, 1, 255, 0, 13, 0,
-                    10, 3, 109, 120, 49, 4, 109, 97, 105, 108, 192, 12, 192, 12, 0, 15, 0, 1, 0, 0,
-                    1, 255, 0, 8, 0, 10, 3, 109, 120, 50, 192, 47, 192, 12, 0, 15, 0, 1, 0, 0, 1,
-                    255, 0, 8, 0, 10, 3, 109, 120, 51, 192, 47, 192, 12, 0, 15, 0, 1, 0, 0, 1, 255,
-                    0, 8, 0, 10, 3, 109, 120, 53, 192, 47,
-                ],
-                "yahoo.co.jp".to_string(),
-                4,
-                true,
-            ),
-        ];
+    fn test_dns_from_judge() {
+        let cases: &[&[u8]] = &[&[
+            178, 94, 129, 128, 0, 1, 0, 1, 0, 0, 0, 0, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111,
+            109, 0, 0, 1, 0, 1, 192, 12, 0, 1, 0, 1, 0, 0, 1, 33, 0, 4, 142, 251, 42, 238,
+        ]];
 
         for cs in cases {
-            let mut dns = DNS::from(&cs.0.to_vec()).unwrap();
-            assert_eq!(cs.2, dns.answers.len());
-            if cs.2 != 0 {
-                assert_eq!(cs.1, dns.answers.0.get(0).as_ref().unwrap().borrow().name());
+            let mut dns = DNS::from(&cs.to_vec()).unwrap();
+            println!("dns = {:?}", dns);
+            assert_eq!(*cs, dns.encode(dns.is_compressed()).unwrap());
+        }
+    }
+
+    fn test_dns_from_a_file(filepath: &str) -> Option<DNS> {
+        println!("filepath = {}", filepath);
+        let raw_dns = fs::read(filepath).unwrap();
+        match DNS::from(&raw_dns) {
+            Ok(mut parsed_dns) => {
+                assert_eq!(
+                    raw_dns.to_vec(),
+                    parsed_dns.encode(parsed_dns.is_compressed()).unwrap()
+                );
+                Some(parsed_dns)
+            }
+            Err(e) => {
+                print!("");
+                None
+            }
+        }
+    }
+    #[test]
+    fn test_dns_from_file() {
+        let dns = test_dns_from_a_file("./test_dns_raw/xhamster.com/16_3");
+        if dns.is_some() {
+            println!("dns = {:?}", dns);
+        }
+    }
+
+    #[test]
+    fn test_dns_from_domain() {
+        let domain = "google.com";
+        let dir_path = format!("./test_dns_raw/{}", domain);
+
+        let dir = fs::read_dir(dir_path).unwrap();
+        dir.for_each(|f| {
+            let f_path = f.unwrap().path();
+            let filename = f_path.to_str().unwrap();
+
+            test_dns_from_a_file(filename);
+        });
+    }
+
+    #[test]
+    fn test_dns_from_all() {
+        let dir = fs::read_dir("./test_dns_raw").unwrap();
+        dir.for_each(|f| {
+            let f_path = f.unwrap().path();
+            let filename = f_path.to_str().unwrap();
+
+            if f_path.is_dir() {
+                for entry in f_path.read_dir() {
+                    entry.for_each(|_f| {
+                        let _f_path = _f.as_ref().unwrap().path();
+                        if _f_path.is_dir() {
+                            return;
+                        }
+                        let _filename = _f_path.to_str().unwrap();
+
+                        let filename2 = _f.as_ref().unwrap().file_name();
+                        let mut names = filename2.to_str().unwrap().split("_");
+                        let typ = names.next().unwrap();
+                        let class = names.next().unwrap();
+                        if typ.eq("3") || typ.eq("4") {
+                            return;
+                        }
+
+                        test_dns_from_a_file(_filename);
+                    })
+                }
+                return;
             }
 
-            println!("dns = {:?}", dns);
-            let compression = dns.encode(cs.3).unwrap();
-            assert_eq!(cs.0, compression);
-            let parse_self_dns = DNS::from(&compression.to_vec()).unwrap();
-            println!("parse_encoded_dns: dns = {:?}", parse_self_dns);
-        }
+            test_dns_from_a_file(filename);
+        });
     }
 }

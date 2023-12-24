@@ -255,11 +255,12 @@ pub fn encode_domain_name_wrap(
         r
     };
 
-    for (domain, offset) in cl.get_0() {
-        match domain_name.find(&*domain) {
+    let mut list = vec![];
+    for (domain, offset) in cl.get_0().clone() {
+        match domain_name.find(&domain) {
             Some(pos) => {
                 // don't need compress this domain, cause the length equal the compressed length
-                if domain.len() <= 2 {
+                if domain.len() < 2 {
                     continue;
                 }
 
@@ -277,13 +278,12 @@ pub fn encode_domain_name_wrap(
                     continue;
                 }
 
-                let mut list = vec![];
                 // encode the preffix str exclude the domain in domain_name
                 if domain_name[..pos].len() != 0 {
                     list.extend_from_slice(&encode(&domain_name[..pos]));
                 }
                 // pointer: offset
-                let mut compressed_unit = (*offset as u16).to_be_bytes();
+                let mut compressed_unit = (offset as u16).to_be_bytes();
                 // pointer: compressed flag
                 compressed_unit[0] |= 0b1100_0000;
                 list.extend(compressed_unit);
