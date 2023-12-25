@@ -167,6 +167,7 @@ impl RDataOperation for RDataType {
 }
 
 pub fn parse_charactor_string(_rdata: &[u8]) -> Result<Vec<Vec<u8>>, Error> {
+    println!("rdata = {:?}", _rdata);
     let mut iter: std::slice::Iter<'_, u8> = _rdata.iter();
     let mut next = iter.next();
     let mut start = 0_usize;
@@ -257,49 +258,91 @@ pub fn encode_domain_name_wrap(
 
     let mut list = vec![];
     for (domain, offset) in cl.get_0().clone() {
-        match domain_name.find(&domain) {
-            Some(pos) => {
-                // don't need compress this domain, cause the length equal the compressed length
-                if domain.len() < 2 {
-                    continue;
-                }
-
-                // guarant the side of the domain in domain_name is dot
-                // Example:
-                // domain_name is "dns.Facebook.com"
-                // but domain in CompressList is "ns.Facebook.com", maybe it is a substring of "a.ns.Facebook.com" add to CompressList
-                // then will match domain_name.find(&*domain) to Some(_) branch
-                // but this should not matched and don't compress
-                // so we will check over the domain's side weather is dot
-                if (pos != 0 && domain_name.as_bytes()[pos - 1] != b'.')
-                    || pos + domain.len() + 1 < domain_name.len()
-                        && domain_name.as_bytes()[pos + domain.len() + 1] != b'.'
-                {
-                    continue;
-                }
-
-                // encode the preffix str exclude the domain in domain_name
-                if domain_name[..pos].len() != 0 {
-                    list.extend_from_slice(&encode(&domain_name[..pos]));
-                }
-                // pointer: offset
-                let mut compressed_unit = (offset as u16).to_be_bytes();
-                // pointer: compressed flag
-                compressed_unit[0] |= 0b1100_0000;
-                list.extend(compressed_unit);
-
-                // encode the suffix str exclude the domain in domain_name
-                if domain_name[pos + domain.len()..].len() != 0 {
-                    list.extend_from_slice(&encode(&domain_name[pos + domain.len()..]));
-                    list.push(b'\x00');
-                }
-
-                // update the exist domain_name in CompressList
-                cl.push(domain_name, raw_offset);
-                return Ok(list);
+        if domain_name.ends_with(&domain) {
+            // don't need compress this domain, cause the length equal the compressed length
+            if domain.len() < 2 {
+                continue;
             }
-            None => continue,
+
+            let pos = domain_name.len() - domain.len();
+            // guarant the side of the domain in domain_name is dot
+            // Example:
+            // domain_name is "dns.Facebook.com"
+            // but domain in CompressList is "ns.Facebook.com", maybe it is a substring of "a.ns.Facebook.com" add to CompressList
+            // then will match domain_name.find(&*domain) to Some(_) branch
+            // but this should not matched and don't compress
+            // so we will check over the domain's side weather is dot
+            if (pos != 0 && domain_name.as_bytes()[pos - 1] != b'.')
+                || pos + domain.len() + 1 < domain_name.len()
+                    && domain_name.as_bytes()[pos + domain.len() + 1] != b'.'
+            {
+                continue;
+            }
+
+            // encode the preffix str exclude the domain in domain_name
+            if domain_name[..pos].len() != 0 {
+                list.extend_from_slice(&encode(&domain_name[..pos]));
+            }
+            // pointer: offset
+            let mut compressed_unit = (offset as u16).to_be_bytes();
+            // pointer: compressed flag
+            compressed_unit[0] |= 0b1100_0000;
+            list.extend(compressed_unit);
+
+            // encode the suffix str exclude the domain in domain_name
+            if domain_name[pos + domain.len()..].len() != 0 {
+                list.extend_from_slice(&encode(&domain_name[pos + domain.len()..]));
+                list.push(b'\x00');
+            }
+
+            // update the exist domain_name in CompressList
+            cl.push(domain_name, raw_offset);
+            return Ok(list);
         }
+
+        // match domain_name.find(&domain) {
+        //     Some(pos) => {
+        //         // don't need compress this domain, cause the length equal the compressed length
+        //         if domain.len() < 2 {
+        //             continue;
+        //         }
+
+        //         // guarant the side of the domain in domain_name is dot
+        //         // Example:
+        //         // domain_name is "dns.Facebook.com"
+        //         // but domain in CompressList is "ns.Facebook.com", maybe it is a substring of "a.ns.Facebook.com" add to CompressList
+        //         // then will match domain_name.find(&*domain) to Some(_) branch
+        //         // but this should not matched and don't compress
+        //         // so we will check over the domain's side weather is dot
+        //         if (pos != 0 && domain_name.as_bytes()[pos - 1] != b'.')
+        //             || pos + domain.len() + 1 < domain_name.len()
+        //                 && domain_name.as_bytes()[pos + domain.len() + 1] != b'.'
+        //         {
+        //             continue;
+        //         }
+
+        //         // encode the preffix str exclude the domain in domain_name
+        //         if domain_name[..pos].len() != 0 {
+        //             list.extend_from_slice(&encode(&domain_name[..pos]));
+        //         }
+        //         // pointer: offset
+        //         let mut compressed_unit = (offset as u16).to_be_bytes();
+        //         // pointer: compressed flag
+        //         compressed_unit[0] |= 0b1100_0000;
+        //         list.extend(compressed_unit);
+
+        //         // encode the suffix str exclude the domain in domain_name
+        //         if domain_name[pos + domain.len()..].len() != 0 {
+        //             list.extend_from_slice(&encode(&domain_name[pos + domain.len()..]));
+        //             list.push(b'\x00');
+        //         }
+
+        //         // update the exist domain_name in CompressList
+        //         cl.push(domain_name, raw_offset);
+        //         return Ok(list);
+        //     }
+        //     None => continue,
+        // }
     }
 
     // update the exist domain_name in CompressList
