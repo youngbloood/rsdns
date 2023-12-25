@@ -24,14 +24,18 @@ when talking between machines or operating systems of the same type.
 */
 
 use super::RDataOperation;
-use crate::dns::{
-    compress_list::CompressList,
-    rdata::{parse_charactor_string, ERR_RDATE_MSG},
-};
-use anyhow::{anyhow, Error};
+use crate::dns::{compress_list::CompressList, rdata::parse_charactor_string};
+use anyhow::Error;
 
+// adapt RFC8482
+// ref: https://www.rfc-editor.org/rfc/rfc8482#section-4.2
 #[derive(Debug)]
 pub struct HInfo {
+    /// weather the HInfo is synthesized.
+    ///
+    /// ref: https://www.rfc-editor.org/rfc/rfc8482#section-4.2
+    pub synthesized: bool,
+
     /// A <character-string> which specifies the CPU type.
     pub cpu: String,
 
@@ -42,6 +46,7 @@ pub struct HInfo {
 impl HInfo {
     pub fn from(raw: &[u8], rdata: &[u8]) -> Result<Self, Error> {
         let mut hinfo = Self {
+            synthesized: false,
             cpu: "".to_string(),
             os: "".to_string(),
         };
@@ -54,11 +59,14 @@ impl HInfo {
 impl RDataOperation for HInfo {
     fn decode(&mut self, _raw: &[u8], rdata: &[u8]) -> Result<(), Error> {
         let list = parse_charactor_string(rdata)?;
-        if list.len() < 2 {
-            return Err(anyhow!(ERR_RDATE_MSG));
+        if list.len() >= 1 {
+            self.synthesized = true;
+            self.cpu = String::from_utf8(list.get(0).unwrap().to_vec())?;
         }
-        self.cpu = String::from_utf8(list.get(0).unwrap().to_vec())?;
-        self.os = String::from_utf8(list.get(1).unwrap().to_vec())?;
+        if list.len() >= 2 {
+            self.synthesized = false;
+            self.os = String::from_utf8(list.get(1).unwrap().to_vec())?;
+        }
 
         Ok(())
     }
@@ -69,7 +77,9 @@ impl RDataOperation for HInfo {
         _hm: &mut CompressList,
         _is_compressed: bool,
     ) -> Result<(), Error> {
+        raw.push(self.cpu.len() as u8);
         raw.extend_from_slice(self.cpu.as_bytes());
+        raw.push(self.os.len() as u8);
         raw.extend_from_slice(self.os.as_bytes());
 
         Ok(())

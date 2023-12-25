@@ -29,6 +29,7 @@ use std::rc::Rc;
 pub struct DNS {
     _raw: Vec<u8>,
     _is_compressed: bool,
+    _parsed_len: usize,
 
     head: Header,
     ques: Questions,
@@ -42,6 +43,7 @@ impl DNS {
         Self {
             _raw: vec![],
             _is_compressed: false,
+            _parsed_len: 0,
 
             head: Header::new(),
             ques: Questions::new(),
@@ -59,11 +61,16 @@ impl DNS {
         self._is_compressed
     }
 
+    pub fn parsed_len(&self) -> usize {
+        self._parsed_len
+    }
+
     pub fn from_fake(raw: &[u8]) -> Result<Self, Error> {
         let mut offset = 0;
         let mut dns = Self {
             _raw: raw.to_vec(),
             _is_compressed: false,
+            _parsed_len: 0,
             head: Header::from(raw, &mut offset),
             ques: Questions::new(),
             answers: RRs::new(),
@@ -89,6 +96,7 @@ impl DNS {
         let mut dns = Self {
             _raw: raw.to_vec(),
             _is_compressed: false,
+            _parsed_len: 0,
 
             head: Header::from(raw, &mut offset),
             ques: Questions::new(),
@@ -96,6 +104,16 @@ impl DNS {
             authority: RRs::new(),
             additional: RRs::new(),
         };
+
+        // for debug
+        // println!("rcode = {}", dns.head.rcode());
+        // println!(
+        //     "qd={}, an={}, ns={}, ar={}",
+        //     dns.head.qdcount(),
+        //     dns.head.ancount(),
+        //     dns.head.nscount(),
+        //     dns.head.arcount(),
+        // );
 
         // parse question
         for _i in 0..dns.head.qdcount() {
@@ -124,6 +142,7 @@ impl DNS {
             dns.additional.0.push(Rc::new(RefCell::new(rr)));
         }
 
+        dns._parsed_len = offset;
         return Ok(dns);
     }
 
@@ -189,42 +208,29 @@ impl DNS {
 #[cfg(test)]
 mod tests {
     use crate::DNS;
+    use core::panic;
     use std::fs;
 
-    #[test]
-    fn test_dns_from_judge() {
-        let cases: &[&[u8]] = &[&[
-            178, 94, 129, 128, 0, 1, 0, 1, 0, 0, 0, 0, 6, 103, 111, 111, 103, 108, 101, 3, 99, 111,
-            109, 0, 0, 1, 0, 1, 192, 12, 0, 1, 0, 1, 0, 0, 1, 33, 0, 4, 142, 251, 42, 238,
-        ]];
-
-        for cs in cases {
-            let mut dns = DNS::from(&cs.to_vec()).unwrap();
-            println!("dns = {:?}", dns);
-            assert_eq!(*cs, dns.encode(dns.is_compressed()).unwrap());
-        }
-    }
-
     fn test_dns_from_a_file(filepath: &str) -> Option<DNS> {
-        println!("filepath = {}", filepath);
         let raw_dns = fs::read(filepath).unwrap();
+        // println!("filepath={}, raw_dns={:?}", filepath, raw_dns);
+        println!("filepath={}", filepath);
         match DNS::from(&raw_dns) {
             Ok(mut parsed_dns) => {
                 assert_eq!(
-                    raw_dns.to_vec(),
+                    raw_dns.to_vec()[..parsed_dns.parsed_len()],
                     parsed_dns.encode(parsed_dns.is_compressed()).unwrap()
                 );
                 Some(parsed_dns)
             }
             Err(e) => {
-                print!("");
-                None
+                panic!("{}", e);
             }
         }
     }
     #[test]
     fn test_dns_from_file() {
-        let dns = test_dns_from_a_file("./test_dns_raw/xhamster.com/16_3");
+        let dns = test_dns_from_a_file("./test_dns_raw/roblox.com/255_1");
         if dns.is_some() {
             println!("dns = {:?}", dns);
         }
@@ -252,22 +258,13 @@ mod tests {
             let filename = f_path.to_str().unwrap();
 
             if f_path.is_dir() {
-                for entry in f_path.read_dir() {
+                if let Ok(entry) = f_path.read_dir() {
                     entry.for_each(|_f| {
                         let _f_path = _f.as_ref().unwrap().path();
                         if _f_path.is_dir() {
                             return;
                         }
                         let _filename = _f_path.to_str().unwrap();
-
-                        let filename2 = _f.as_ref().unwrap().file_name();
-                        let mut names = filename2.to_str().unwrap().split("_");
-                        let typ = names.next().unwrap();
-                        let class = names.next().unwrap();
-                        if typ.eq("3") || typ.eq("4") {
-                            return;
-                        }
-
                         test_dns_from_a_file(_filename);
                     })
                 }

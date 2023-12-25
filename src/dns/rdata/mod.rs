@@ -167,13 +167,15 @@ impl RDataOperation for RDataType {
 }
 
 pub fn parse_charactor_string(_rdata: &[u8]) -> Result<Vec<Vec<u8>>, Error> {
-    println!("rdata = {:?}", _rdata);
     let mut iter: std::slice::Iter<'_, u8> = _rdata.iter();
     let mut next = iter.next();
     let mut start = 0_usize;
     let mut list = vec![];
     while next.is_some() {
         let length = *next.unwrap() as usize;
+        if length == 0 {
+            return Ok(list);
+        }
         start += 1;
         if start + length > _rdata.len() {
             return Err(Error::msg("not completed charactor string"));

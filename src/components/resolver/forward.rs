@@ -91,10 +91,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        dns::{
-            Class, Type, CLASS_HS, CLASS_IN, CLASS_WILDCARDS, TYPE_A, TYPE_AXFR, TYPE_TXT,
-            TYPE_WILDCARDS,
-        },
+        dns::{Class, Type, CLASS_ANY, CLASS_HS, CLASS_IN, TYPE_A, TYPE_ANY, TYPE_AXFR, TYPE_TXT},
         DNS,
     };
 
@@ -145,7 +142,6 @@ mod tests {
             // }
             for typ in TYPE_A..TYPE_TXT {
                 for class in CLASS_IN..CLASS_HS {
-                    thread::sleep(dur);
                     match query(domain, typ, class) {
                         Ok(new_dns) => {
                             print(domain, typ, class, new_dns);
@@ -154,24 +150,21 @@ mod tests {
                     }
                 }
 
-                thread::sleep(dur);
-                let result = query(domain, typ, CLASS_WILDCARDS);
+                let result = query(domain, typ, CLASS_ANY);
                 assert_eq!(true, result.is_ok());
-                print(domain, typ, CLASS_WILDCARDS, result.unwrap());
+                print(domain, typ, CLASS_ANY, result.unwrap());
             }
 
-            for typ in TYPE_AXFR..TYPE_WILDCARDS {
+            for typ in TYPE_AXFR..TYPE_ANY {
                 for class in CLASS_IN..CLASS_HS {
-                    thread::sleep(dur);
                     let result = query(domain, typ, class);
                     assert_eq!(true, result.is_ok());
                     print(domain, typ, class, result.unwrap());
                 }
 
-                thread::sleep(dur);
-                let result = query(domain, typ, CLASS_WILDCARDS);
+                let result = query(domain, typ, CLASS_ANY);
                 assert_eq!(true, result.is_ok());
-                print(domain, typ, CLASS_WILDCARDS, result.unwrap());
+                print(domain, typ, CLASS_ANY, result.unwrap());
             }
         }
 
@@ -283,6 +276,7 @@ mod tests {
             .start();
 
         let query = |domain: &str, typ: Type, class: Class| -> Result<DNS, Error> {
+            thread::sleep(Duration::from_millis(500));
             let mut dns = DNS::new();
             dns.with_ques(domain, typ, class);
             dns.head().with_rd(true);
@@ -305,6 +299,8 @@ mod tests {
             let _ = fd.write(content);
         };
 
+        let base_dir = "test_dns_raw";
+
         for domain in domains {
             println!("domain = {}", domain);
             // for debug
@@ -320,7 +316,8 @@ mod tests {
                         Ok(mut dns) => {
                             let ques = dns.ques().0.get(0).unwrap();
                             let filename = format!(
-                                "./test_dns_raw/{}/{}_{}",
+                                "./{}/{}/{}_{}",
+                                base_dir,
                                 ques.qname().encode_to_str(),
                                 ques.qtype(),
                                 ques.qclass(),
@@ -330,12 +327,13 @@ mod tests {
                     }
                 }
 
-                match query(domain, typ, CLASS_WILDCARDS) {
+                match query(domain, typ, CLASS_ANY) {
                     Err(e) => panic!("{}", e),
                     Ok(mut dns) => {
                         let ques = dns.ques().0.get(0).unwrap();
                         let filename = format!(
-                            "./test_dns_raw/{}/{}_{}",
+                            "./{}/{}/{}_{}",
+                            base_dir,
                             ques.qname().encode_to_str(),
                             ques.qtype(),
                             ques.qclass(),
@@ -345,14 +343,15 @@ mod tests {
                 }
             }
 
-            for typ in TYPE_AXFR..TYPE_WILDCARDS + 1 {
+            for typ in TYPE_AXFR..TYPE_ANY + 1 {
                 for class in CLASS_IN..CLASS_HS + 1 {
                     match query(domain, typ, class) {
                         Err(e) => panic!("{}", e),
                         Ok(mut dns) => {
                             let ques = dns.ques().0.get(0).unwrap();
                             let filename = format!(
-                                "./test_dns_raw/{}/{}_{}",
+                                "./{}/{}/{}_{}",
+                                base_dir,
                                 ques.qname().encode_to_str(),
                                 ques.qtype(),
                                 ques.qclass(),
@@ -361,12 +360,13 @@ mod tests {
                         }
                     }
                 }
-                match query(domain, typ, CLASS_WILDCARDS) {
+                match query(domain, typ, CLASS_ANY) {
                     Err(e) => panic!("{}", e),
                     Ok(mut dns) => {
                         let ques = dns.ques().0.get(0).unwrap();
                         let filename = format!(
-                            "./test_dns_raw/{}/{}_{}",
+                            "./{}/{}/{}_{}",
+                            base_dir,
                             ques.qname().encode_to_str(),
                             ques.qtype(),
                             ques.qclass(),
@@ -375,8 +375,6 @@ mod tests {
                     }
                 }
             }
-
-            thread::sleep(Duration::from_secs(6));
         }
     }
 }

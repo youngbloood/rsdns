@@ -73,7 +73,9 @@ pub const TYPE_MAILB: Type = 253;
 pub const TYPE_MAILA: Type = 254;
 
 /// for QType
-pub const TYPE_WILDCARDS: Type = 255;
+///
+/// ref: https://www.rfc-editor.org/rfc/rfc8482
+pub const TYPE_ANY: Type = 255;
 
 ///  the Internet
 pub const CLASS_IN: Class = 1;
@@ -85,7 +87,7 @@ pub const CLASS_CH: Class = 3;
 pub const CLASS_HS: Class = 4;
 
 /// for QClass
-pub const CLASS_WILDCARDS: Class = 255;
+pub const CLASS_ANY: Class = 255;
 
 pub type RcRf<T> = Rc<RefCell<T>>;
 
