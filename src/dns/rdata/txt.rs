@@ -24,16 +24,16 @@ pub struct TXT(pub String);
 
 impl TXT {
     pub fn from(raw: &[u8], rdata: &[u8]) -> Result<Self, Error> {
-        let mut cname = Self { 0: "".to_string() };
-        cname.decode(raw, rdata)?;
+        let mut txt = Self { 0: "".to_string() };
+        txt.decode(raw, rdata)?;
 
-        Ok(cname)
+        Ok(txt)
     }
 }
 
 impl RDataOperation for TXT {
     fn decode(&mut self, _raw: &[u8], rdata: &[u8]) -> Result<(), Error> {
-        self.0 = String::from_utf8(rdata.to_vec())?;
+        self.0 = unsafe { String::from_utf8_unchecked(rdata.to_vec()) };
 
         Ok(())
     }
