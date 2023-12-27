@@ -94,11 +94,11 @@ impl RDataOperation for WKS {
         raw: &mut Vec<u8>,
         _hm: &mut CompressList,
         _is_compressed: bool,
-    ) -> Result<(), Error> {
+    ) -> Result<usize, Error> {
         raw.extend_from_slice(&self.addr.octets());
         raw.push(self.protocol);
         raw.extend_from_slice(&self.bit_map);
 
-        Ok(())
+        Ok(4 + 1 + self.bit_map.len())
     }
 }

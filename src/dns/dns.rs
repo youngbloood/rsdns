@@ -107,13 +107,13 @@ impl DNS {
 
         // for debug
         // println!("rcode = {}", dns.head.rcode());
-        // println!(
-        //     "qd={}, an={}, ns={}, ar={}",
-        //     dns.head.qdcount(),
-        //     dns.head.ancount(),
-        //     dns.head.nscount(),
-        //     dns.head.arcount(),
-        // );
+        println!(
+            "qd={}, an={}, ns={}, ar={}",
+            dns.head.qdcount(),
+            dns.head.ancount(),
+            dns.head.nscount(),
+            dns.head.arcount(),
+        );
 
         // parse question
         for _i in 0..dns.head.qdcount() {
@@ -230,7 +230,7 @@ mod tests {
     }
     #[test]
     fn test_dns_from_file() {
-        let dns = test_dns_from_a_file("./test_dns_raw/roblox.com/255_1");
+        let dns = test_dns_from_a_file("./test_dns_raw_tsig/netflix.com_250_1");
         if dns.is_some() {
             println!("dns = {:?}", dns);
         }
@@ -252,7 +252,7 @@ mod tests {
 
     #[test]
     fn test_dns_from_all() {
-        let dir = fs::read_dir("./test_dns_raw").unwrap();
+        let dir = fs::read_dir("./test_dns_raw_tsig").unwrap();
         dir.for_each(|f| {
             let f_path = f.unwrap().path();
             let filename = f_path.to_str().unwrap();

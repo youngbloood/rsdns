@@ -32,7 +32,7 @@ records can be associated with a simple mailbox, they are usually used
 with a mailing list.
  */
 
-use super::{encode_domain_name_wrap, parse_domain_name, RDataOperation};
+use super::{encode_domain_name_wrap, parse_domain_name_without_len, RDataOperation};
 use crate::dns::{compress_list::CompressList, rdata::ERR_RDATE_MSG};
 use anyhow::{anyhow, Error};
 
@@ -56,7 +56,7 @@ impl MInfo {
 
 impl RDataOperation for MInfo {
     fn decode(&mut self, raw: &[u8], rdata: &[u8]) -> Result<(), Error> {
-        let list = parse_domain_name(raw, rdata)?;
+        let list = parse_domain_name_without_len(raw, rdata)?;
         if list.len() < 2 {
             return Err(anyhow!(ERR_RDATE_MSG));
         }
@@ -71,20 +71,14 @@ impl RDataOperation for MInfo {
         raw: &mut Vec<u8>,
         cl: &mut CompressList,
         is_compressed: bool,
-    ) -> Result<(), Error> {
-        raw.extend_from_slice(&encode_domain_name_wrap(
-            self.rmail_bx.as_str(),
-            cl,
-            is_compressed,
-            raw.len(),
-        )?);
-        raw.extend_from_slice(&encode_domain_name_wrap(
-            self.email_bx.as_str(),
-            cl,
-            is_compressed,
-            raw.len(),
-        )?);
+    ) -> Result<usize, Error> {
+        let encoded_rmail_bx =
+            encode_domain_name_wrap(self.rmail_bx.as_str(), cl, is_compressed, raw.len())?;
+        raw.extend_from_slice(&encoded_rmail_bx);
+        let encoded_email_bx =
+            encode_domain_name_wrap(self.email_bx.as_str(), cl, is_compressed, raw.len())?;
+        raw.extend_from_slice(&encoded_email_bx);
 
-        Ok(())
+        Ok(encoded_rmail_bx.len() + encoded_email_bx.len())
     }
 }

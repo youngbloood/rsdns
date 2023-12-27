@@ -26,12 +26,13 @@ mod ns;
 mod null;
 mod ptr;
 mod soa;
+pub mod tsig;
 mod txt;
 mod wks;
 
 use self::{
     a::A, cname::CName, hinfo::HInfo, mb::MB, md::MD, mf::MF, mg::MG, minfo::MInfo, mr::MR, mx::MX,
-    ns::NS, null::Null, ptr::PTR, soa::SOA, txt::TXT, wks::WKS,
+    ns::NS, null::Null, ptr::PTR, soa::SOA, tsig::TSig, txt::TXT, wks::WKS,
 };
 use super::{
     compress_list::CompressList, labels::Labels, Type, TYPE_A, TYPE_CNAME, TYPE_HINFO, TYPE_MB,
@@ -60,7 +61,7 @@ pub trait RDataOperation: Debug {
         raw: &mut Vec<u8>,
         cl: &mut CompressList,
         is_compressed: bool,
-    ) -> Result<(), Error>;
+    ) -> Result<usize, Error>;
 }
 
 /**
@@ -85,6 +86,7 @@ pub enum RDataType {
     TXT(TXT),
     A(A),
     WKS(WKS),
+    TSig(TSig),
 }
 
 impl RDataType {
@@ -134,6 +136,7 @@ impl RDataOperation for RDataType {
             RDataType::TXT(txt) => txt.decode(raw, rdata),
             RDataType::A(a) => a.decode(raw, rdata),
             RDataType::WKS(wks) => wks.decode(raw, rdata),
+            RDataType::TSig(tsig) => tsig.decode(raw, rdata),
             _ => bail!(ERR_RDATE_TYPE),
         }
     }
@@ -143,7 +146,7 @@ impl RDataOperation for RDataType {
         raw: &mut Vec<u8>,
         cl: &mut CompressList,
         is_compressed: bool,
-    ) -> Result<(), Error> {
+    ) -> Result<usize, Error> {
         match self {
             RDataType::CName(cname) => cname.encode(raw, cl, is_compressed),
             RDataType::HInfo(hinfo) => hinfo.encode(raw, cl, is_compressed),
@@ -161,6 +164,7 @@ impl RDataOperation for RDataType {
             RDataType::TXT(txt) => txt.encode(raw, cl, is_compressed),
             RDataType::A(a) => a.encode(raw, cl, is_compressed),
             RDataType::WKS(wks) => wks.encode(raw, cl, is_compressed),
+            RDataType::TSig(tsig) => tsig.encode(raw, cl, is_compressed),
             _ => bail!(ERR_RDATE_TYPE),
         }
     }
@@ -187,7 +191,7 @@ pub fn parse_charactor_string(_rdata: &[u8]) -> Result<Vec<Vec<u8>>, Error> {
 }
 
 ///  all domain names in the RDATA section of these RRs may be compressed, so we will check weather it compressed.
-pub fn parse_domain_name(raw: &[u8], rdata: &[u8]) -> Result<Vec<Labels>, Error> {
+pub fn parse_domain_name(raw: &[u8], rdata: &[u8]) -> Result<(Vec<Labels>, usize), Error> {
     let mut list = vec![];
     let mut offset = 0;
     while offset < rdata.len() {
@@ -216,6 +220,12 @@ pub fn parse_domain_name(raw: &[u8], rdata: &[u8]) -> Result<Vec<Labels>, Error>
         }
         list.push(labels)
     }
+
+    Ok((list, offset))
+}
+
+pub fn parse_domain_name_without_len(raw: &[u8], rdata: &[u8]) -> Result<Vec<Labels>, Error> {
+    let (list, _) = parse_domain_name(raw, rdata)?;
 
     Ok(list)
 }

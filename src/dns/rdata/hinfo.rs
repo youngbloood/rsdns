@@ -76,12 +76,14 @@ impl RDataOperation for HInfo {
         raw: &mut Vec<u8>,
         _hm: &mut CompressList,
         _is_compressed: bool,
-    ) -> Result<(), Error> {
+    ) -> Result<usize, Error> {
         raw.push(self.cpu.len() as u8);
-        raw.extend_from_slice(self.cpu.as_bytes());
+        let encoded_cpu = self.cpu.as_bytes();
+        raw.extend_from_slice(encoded_cpu);
         raw.push(self.os.len() as u8);
-        raw.extend_from_slice(self.os.as_bytes());
+        let encoded_os = self.os.as_bytes();
+        raw.extend_from_slice(encoded_os);
 
-        Ok(())
+        Ok(1 + encoded_cpu.len() + 1 + encoded_os.len())
     }
 }

@@ -54,9 +54,10 @@ impl RDataOperation for A {
         raw: &mut Vec<u8>,
         _hm: &mut CompressList,
         _is_compressed: bool,
-    ) -> Result<(), Error> {
-        raw.extend_from_slice(&self.0.octets().to_vec());
+    ) -> Result<usize, Error> {
+        let encoded = self.0.octets().to_vec();
+        raw.extend_from_slice(&encoded);
 
-        Ok(())
+        Ok(encoded.len())
     }
 }

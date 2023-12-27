@@ -1,9 +1,10 @@
 mod compress_list;
 pub mod dns;
+pub mod err;
 pub mod header;
 mod labels;
 pub mod question;
-mod rdata;
+pub mod rdata;
 mod rr;
 
 pub use dns::DNS;

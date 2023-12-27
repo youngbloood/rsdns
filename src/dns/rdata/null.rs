@@ -44,9 +44,9 @@ impl RDataOperation for Null {
         raw: &mut Vec<u8>,
         _hm: &mut CompressList,
         _is_compressed: bool,
-    ) -> Result<(), Error> {
+    ) -> Result<usize, Error> {
         raw.extend_from_slice(&self.0.to_vec());
 
-        Ok(())
+        Ok(self.0.len())
     }
 }

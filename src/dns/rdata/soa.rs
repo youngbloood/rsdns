@@ -68,7 +68,7 @@ reason for this provison is to allow future dynamic update facilities to
 change the SOA RR with known semantics.
  */
 
-use super::{encode_domain_name_wrap, parse_domain_name, RDataOperation};
+use super::{encode_domain_name_wrap, parse_domain_name_without_len, RDataOperation};
 use crate::dns::{compress_list::CompressList, rdata::ERR_RDATE_MSG};
 use anyhow::{anyhow, Error, Ok};
 
@@ -117,7 +117,7 @@ impl SOA {
 
 impl RDataOperation for SOA {
     fn decode(&mut self, raw: &[u8], rdata: &[u8]) -> Result<(), Error> {
-        let list = parse_domain_name(raw, &rdata[..rdata.len() - 20])?;
+        let list = parse_domain_name_without_len(raw, &rdata[..rdata.len() - 20])?;
         if list.len() < 2 {
             return Err(anyhow!(ERR_RDATE_MSG));
         }
@@ -152,25 +152,19 @@ impl RDataOperation for SOA {
         raw: &mut Vec<u8>,
         cl: &mut CompressList,
         is_compressed: bool,
-    ) -> Result<(), Error> {
-        raw.extend_from_slice(&encode_domain_name_wrap(
-            self.mname.as_str(),
-            cl,
-            is_compressed,
-            raw.len(),
-        )?);
-        raw.extend_from_slice(&encode_domain_name_wrap(
-            self.rname.as_str(),
-            cl,
-            is_compressed,
-            raw.len(),
-        )?);
+    ) -> Result<usize, Error> {
+        let encoded_mname =
+            encode_domain_name_wrap(self.mname.as_str(), cl, is_compressed, raw.len())?;
+        raw.extend_from_slice(&encoded_mname);
+        let encoded_rname =
+            encode_domain_name_wrap(self.rname.as_str(), cl, is_compressed, raw.len())?;
+        raw.extend_from_slice(&encoded_rname);
         raw.extend_from_slice(&self.serial.to_be_bytes());
         raw.extend_from_slice(&self.refresh.to_be_bytes());
         raw.extend_from_slice(&self.retry.to_be_bytes());
         raw.extend_from_slice(&self.expire.to_be_bytes());
         raw.extend_from_slice(&self.minimum.to_be_bytes());
 
-        Ok(())
+        Ok(encoded_mname.len() + encoded_rname.len() + 4 + 4 + 4 + 4 + 4)
     }
 }

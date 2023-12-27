@@ -24,7 +24,7 @@ specified by EXCHANGE.  The use of MX RRs is explained in detail in
 [RFC-974].
  */
 
-use super::{encode_domain_name_wrap, parse_domain_name, RDataOperation};
+use super::{encode_domain_name_wrap, parse_domain_name_without_len, RDataOperation};
 use crate::dns::compress_list::CompressList;
 use anyhow::Error;
 
@@ -49,7 +49,7 @@ impl MX {
 impl RDataOperation for MX {
     fn decode(&mut self, raw: &[u8], rdata: &[u8]) -> Result<(), Error> {
         self.preference = u16::from_be_bytes(rdata[..2].try_into().expect("get preference failed"));
-        self.exchange = parse_domain_name(raw, &rdata[2..])?
+        self.exchange = parse_domain_name_without_len(raw, &rdata[2..])?
             .get(0)
             .unwrap()
             .encode_to_str();
@@ -62,15 +62,12 @@ impl RDataOperation for MX {
         raw: &mut Vec<u8>,
         cl: &mut CompressList,
         is_compressed: bool,
-    ) -> Result<(), Error> {
+    ) -> Result<usize, Error> {
         raw.extend_from_slice(&self.preference.to_be_bytes());
-        raw.extend_from_slice(&encode_domain_name_wrap(
-            self.exchange.as_str(),
-            cl,
-            is_compressed,
-            raw.len(),
-        )?);
+        let encoded_exchange =
+            encode_domain_name_wrap(self.exchange.as_str(), cl, is_compressed, raw.len())?;
+        raw.extend_from_slice(&encoded_exchange);
 
-        Ok(())
+        Ok(2 + encoded_exchange.len())
     }
 }

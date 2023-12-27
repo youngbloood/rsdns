@@ -201,7 +201,7 @@ impl ResourceRecord {
     }
 
     pub fn encode(
-        &self,
+        &mut self,
         raw: &mut Vec<u8>,
         cl: &mut CompressList,
         is_compressed: bool,
@@ -220,10 +220,15 @@ impl ResourceRecord {
         raw.extend_from_slice(&self.class.to_be_bytes());
         // encode class
         raw.extend_from_slice(&self.ttl.to_be_bytes());
-        // encode length
-        raw.extend_from_slice(&self.rdlength.to_be_bytes());
+        let rdlength_offset = raw.len();
+        // encode length ( with zero placeholder)
+        raw.extend_from_slice(&[0, 0]);
         // encode rdata
-        self.rdata.encode(raw, cl, is_compressed)?;
+        self.rdlength = self.rdata.encode(raw, cl, is_compressed)? as u16;
+        println!("rdlength = {}", self.rdlength);
+        // encode the truly rdlength
+        let encoded_len = self.rdlength.to_be_bytes();
+        (raw[rdlength_offset], raw[rdlength_offset + 1]) = (encoded_len[0], encoded_len[1]);
 
         Ok(())
     }
@@ -250,14 +255,14 @@ impl RRs {
     }
 
     pub fn encode(
-        &self,
+        &mut self,
         raw: &mut Vec<u8>,
         cl: &mut CompressList,
         is_compressed: bool,
     ) -> Result<(), Error> {
         for rr in &self.0 {
             // encode names
-            rr.clone().borrow().encode(raw, cl, is_compressed)?;
+            rr.borrow_mut().encode(raw, cl, is_compressed)?;
         }
 
         Ok(())

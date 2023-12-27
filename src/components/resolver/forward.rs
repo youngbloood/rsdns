@@ -57,6 +57,7 @@ impl ForwardOperation for DefaultForward {
     fn forward(&self, dns: &mut DNS) -> Result<DNS, Error> {
         match self.protocol.as_str() {
             "udp" => {
+                println!("encode dns = {:?}", &dns.encode(true)?);
                 let _ = self
                     .socket
                     .as_ref()
@@ -66,8 +67,9 @@ impl ForwardOperation for DefaultForward {
                 let mut buff = [0u8; 512];
                 let (data_len, _) = self.socket.as_ref().unwrap().recv_from(&mut buff)?;
                 let resp = &buff[..data_len];
+                println!("resp = {:?}", resp);
 
-                let new_dns: DNS = DNS::from_fake(resp)?;
+                let new_dns: DNS = DNS::from(resp)?;
 
                 Ok(new_dns)
             }
@@ -81,17 +83,23 @@ impl ForwardOperation for DefaultForward {
 #[cfg(test)]
 mod tests {
     use std::{
+        cell::RefCell,
         fmt::format,
         fs::{self, File, OpenOptions},
         io::Write,
         path::{self, Path},
+        rc::Rc,
         thread::{self},
         time::Duration,
     };
 
     use super::*;
     use crate::{
-        dns::{Class, Type, CLASS_ANY, CLASS_HS, CLASS_IN, TYPE_A, TYPE_ANY, TYPE_AXFR, TYPE_TXT},
+        dns::{
+            rdata::{tsig::TSig, RDataType},
+            Class, ResourceRecord, Type, CLASS_ANY, CLASS_HS, CLASS_IN, TYPE_A, TYPE_ANY,
+            TYPE_AXFR, TYPE_TXT,
+        },
         DNS,
     };
 
@@ -264,8 +272,73 @@ mod tests {
             "weather.com",
         ];
     }
+
+    fn qeury(domain: &str, typ: Type, class: Class) -> Result<DNS, Error> {
+        thread::sleep(Duration::from_millis(500));
+        let mut dns = DNS::new();
+        dns.with_ques(domain, typ, class);
+        dns.head().with_rd(true);
+
+        let mut fwd: DefaultForward = DefaultForward::new();
+        let port = 31114;
+        fwd.with_target("8.8.4.4:53")
+            .with_protocol("udp")
+            .with_port(port.to_string().as_str())
+            .start();
+
+        fwd.forward(&mut dns)
+    }
+
     #[test]
-    fn add_raw_dns_resp_to_file() {
+    fn test_one_type_one_class() {
+        let domains = get_wait_domains();
+        let save_dir = "./test_dns_raw_tsig";
+        for domain in domains {
+            let dns = qeury(&domain, 250, 1).unwrap();
+            let filename = format!("{}/{}_{}_{}", save_dir, domain, 250, 1);
+            let mut fd = File::open(&filename).unwrap_or(File::create(&filename).unwrap());
+            fd.write(&dns.raw());
+            thread::sleep(Duration::from_millis(100))
+            // println!("dns = {:?}", dns);
+        }
+    }
+
+    #[test]
+    fn test_tsig() {
+        let domain = "tieba.baidu.com";
+        let typ = 250;
+        let class = 1;
+
+        let mut dns = DNS::new();
+        dns.with_ques(domain, typ, class);
+        dns.head().with_rd(true);
+
+        let mut tsig = TSig::new();
+        tsig.with_algorithm_name("HMAC-MD5.SIG-ALG.REG.INT")
+            .with_original_id(dns.head().id())
+            .with_time_signed();
+        let mut tsig_rr = ResourceRecord::new();
+        tsig_rr
+            .with_type(typ)
+            .with_class(class)
+            .with_name(domain)
+            .with_rdata(RDataType::TSig(tsig));
+        dns.with_additional(Rc::new(RefCell::new(tsig_rr)));
+
+        let mut fwd: DefaultForward = DefaultForward::new();
+        let port = 31514;
+        fwd.with_target("8.8.4.4:53")
+            .with_protocol("udp")
+            .with_port(port.to_string().as_str())
+            .start();
+
+        let receive_dns = fwd.forward(&mut dns).unwrap();
+        println!("receive_dns = {:?}", receive_dns);
+    }
+
+    #[test]
+    #[ignore]
+    fn test_add_raw_dns_resp_to_file() {
         let domains = get_wait_domains();
 
         let mut fwd: DefaultForward = DefaultForward::new();
