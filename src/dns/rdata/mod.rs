@@ -24,6 +24,7 @@ mod mr;
 mod mx;
 mod ns;
 mod null;
+pub mod opt;
 mod ptr;
 mod soa;
 pub mod tsig;

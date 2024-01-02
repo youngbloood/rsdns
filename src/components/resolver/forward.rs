@@ -98,7 +98,7 @@ mod tests {
         dns::{
             rdata::{tsig::TSig, RDataType},
             Class, ResourceRecord, Type, CLASS_ANY, CLASS_HS, CLASS_IN, TYPE_A, TYPE_ANY,
-            TYPE_AXFR, TYPE_TXT,
+            TYPE_AXFR, TYPE_OPT, TYPE_TXT,
         },
         DNS,
     };
@@ -181,6 +181,7 @@ mod tests {
 
     // cargo test  test_default_forward_forward_batch --  --test-threads 10
     #[test]
+    #[ignore = "only invoked by manually"]
     fn test_default_forward_forward_batch() {
         // data from https://zh.wikipedia.org/wiki/%E6%9C%80%E5%8F%97%E6%AC%A2%E8%BF%8E%E7%BD%91%E7%AB%99%E5%88%97%E8%A1%A8
         let domains = get_wait_domains();
@@ -337,7 +338,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
+    #[ignore = "only need rewrite the test_dns_raw data"]
     fn test_add_raw_dns_resp_to_file() {
         let domains = get_wait_domains();
 
@@ -448,6 +449,30 @@ mod tests {
                     }
                 }
             }
+        }
+    }
+
+    #[test]
+    fn test_domain_single() {
+        let domain = "google.com";
+        let typ = TYPE_OPT;
+        let class = CLASS_IN;
+
+        let mut dns = DNS::new();
+        dns.with_ques(domain, typ, class);
+        dns.head().with_rd(true);
+
+        let mut fwd: DefaultForward = DefaultForward::new();
+        let port = 31114;
+        fwd.with_target("8.8.4.4:53")
+            .with_protocol("udp")
+            .with_port(port.to_string().as_str())
+            .start();
+        match fwd.forward(&mut dns) {
+            Ok(new_dns) => {
+                println!("new_dns = {:?}", new_dns);
+            }
+            Err(e) => panic!("{}", e),
         }
     }
 }

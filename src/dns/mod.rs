@@ -3,6 +3,7 @@ pub mod dns;
 pub mod err;
 pub mod header;
 mod labels;
+mod pseudo_rr;
 pub mod question;
 pub mod rdata;
 mod rr;
@@ -63,6 +64,9 @@ pub const TYPE_MX: Type = 15;
 
 /// text strings
 pub const TYPE_TXT: Type = 16;
+
+/// OPT
+pub const TYPE_OPT: Type = 41;
 
 /// for QType
 pub const TYPE_AXFR: Type = 252;

@@ -1,4 +1,5 @@
 use super::header::Header;
+use super::pseudo_rr::PseudoRR;
 use super::question::Questions;
 use super::rr::RRs;
 use super::{Class, Question, RcRf, ResourceRecord, Type};
@@ -214,7 +215,7 @@ mod tests {
     fn test_dns_from_a_file(filepath: &str) -> Option<DNS> {
         let raw_dns = fs::read(filepath).unwrap();
         // println!("filepath={}, raw_dns={:?}", filepath, raw_dns);
-        println!("filepath={}", filepath);
+        println!("filepath={:?}", raw_dns);
         match DNS::from(&raw_dns) {
             Ok(mut parsed_dns) => {
                 assert_eq!(
@@ -229,6 +230,7 @@ mod tests {
         }
     }
     #[test]
+    #[ignore = "for single file debug"]
     fn test_dns_from_file() {
         let dns = test_dns_from_a_file("./test_dns_raw_tsig/netflix.com_250_1");
         if dns.is_some() {
@@ -252,7 +254,7 @@ mod tests {
 
     #[test]
     fn test_dns_from_all() {
-        let dir = fs::read_dir("./test_dns_raw_tsig").unwrap();
+        let dir = fs::read_dir("./test_dns_raw").unwrap();
         dir.for_each(|f| {
             let f_path = f.unwrap().path();
             let filename = f_path.to_str().unwrap();

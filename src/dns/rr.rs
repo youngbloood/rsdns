@@ -38,15 +38,21 @@ pub struct ResourceRecord {
     all_length: usize,
 
     /// a domain name to which this resource record pertains.
+    ///
+    /// RFC2671(EDNS0): empty (root domain)
     name: String,
 
     /// two octets containing one of the RR type codes.  This
     /// field specifies the meaning of the data in the RDATA
     /// field.
+    ///
+    /// RFC2671(EDNS0): OPT
     typ: Type,
 
     /// two octets which specify the class of the data in the
     /// RDATA field.
+    ///
+    /// RFC2671(EDNS0): sender's UDP payload size
     class: Class,
 
     /// a 32 bit unsigned integer that specifies the time
@@ -54,6 +60,8 @@ pub struct ResourceRecord {
     /// cached before it should be discarded.  Zero values are
     /// interpreted to mean that the RR can only be used for the
     /// transaction in progress, and should not be cached.
+    ///
+    /// RFC2671(EDNS0): extended RCODE and flags
     ttl: u32,
 
     /// an unsigned 16 bit integer that specifies the length in
