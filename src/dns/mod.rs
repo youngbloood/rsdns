@@ -1,6 +1,5 @@
 mod compress_list;
 pub mod dns;
-pub mod err;
 pub mod header;
 mod labels;
 mod pseudo_rr;
@@ -13,6 +12,9 @@ pub use header::Header;
 pub use question::Question;
 pub use rr::ResourceRecord;
 use std::{cell::RefCell, rc::Rc};
+
+pub type RcRf<T> = Rc<RefCell<T>>;
+pub type VecRcRf<T> = Vec<RcRf<T>>;
 
 pub type Type = u16;
 pub type Class = u16;
@@ -94,6 +96,8 @@ pub const CLASS_HS: Class = 4;
 /// for QClass
 pub const CLASS_ANY: Class = 255;
 
-pub type RcRf<T> = Rc<RefCell<T>>;
-
-pub type VecRcRf<T> = Vec<RcRf<T>>;
+// TODO:
+pub const ERR_BADSIG: u8 = 16;
+pub const ERR_BADKEY: u8 = 16;
+pub const ERR_BADTIME: u8 = 16;
+pub const ERR_BADVERS: u8 = 16;

@@ -1,5 +1,4 @@
 use super::header::Header;
-use super::pseudo_rr::PseudoRR;
 use super::question::Questions;
 use super::rr::RRs;
 use super::{Class, Question, RcRf, ResourceRecord, Type};
@@ -72,7 +71,7 @@ impl DNS {
             _raw: raw.to_vec(),
             _is_compressed: false,
             _parsed_len: 0,
-            head: Header::from(raw, &mut offset),
+            head: Header::from(raw, &mut offset)?,
             ques: Questions::new(),
             answers: RRs::new(),
             authority: RRs::new(),
@@ -99,7 +98,7 @@ impl DNS {
             _is_compressed: false,
             _parsed_len: 0,
 
-            head: Header::from(raw, &mut offset),
+            head: Header::from(raw, &mut offset)?,
             ques: Questions::new(),
             answers: RRs::new(),
             authority: RRs::new(),

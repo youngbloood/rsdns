@@ -55,8 +55,8 @@ impl RDataOperation for OPT {
         if rdata.len() < 4 {
             return Err(anyhow!(ERR_RDATE_MSG));
         }
-        self.code = u16::from_be_bytes(rdata[..2].try_into().expect("111"));
-        self.length = u16::from_be_bytes(rdata[2..4].try_into().expect("111"));
+        self.code = u16::from_be_bytes(rdata[..2].try_into().unwrap());
+        self.length = u16::from_be_bytes(rdata[2..4].try_into().unwrap());
         self.data = rdata[4..].to_vec();
 
         Ok(())

@@ -128,11 +128,7 @@ impl RDataOperation for SOA {
             if *offset + 4 > rdata.len() {
                 return Err(anyhow!(ERR_RDATE_MSG));
             }
-            let v = u32::from_be_bytes(
-                rdata[*offset..*offset + 4]
-                    .try_into()
-                    .expect("failed to get serial"),
-            );
+            let v = u32::from_be_bytes(rdata[*offset..*offset + 4].try_into().unwrap());
             *offset += 4;
 
             return Ok(v);

@@ -1,11 +1,12 @@
 use super::{
     compress_list::CompressList,
     labels::Labels,
+    pseudo_rr::PseudoRR,
     rdata::{encode_domain_name_wrap, RDataOperation, RDataType},
-    Class, RcRf, Type, VecRcRf,
+    Class, RcRf, Type, VecRcRf, TYPE_OPT,
 };
 use crate::util;
-use anyhow::Error;
+use anyhow::{anyhow, Error};
 
 /// The answer, authority, and additional sections all share the same
 /// format: a variable number of resource records, where the number of
@@ -111,39 +112,24 @@ impl ResourceRecord {
             rr.name = labels.encode_to_str();
         }
 
+        // validate the rr length
         if *offset + 10 > raw.len() {
             return Err(packet_err);
         }
         // parse type
-        rr.typ = u16::from_be_bytes(
-            raw[*offset..*offset + 2]
-                .try_into()
-                .expect("slice with incorrent length"),
-        );
+        rr.typ = u16::from_be_bytes(raw[*offset..*offset + 2].try_into().unwrap());
         *offset += 2;
 
         // parse class
-        rr.class = u16::from_be_bytes(
-            raw[*offset..*offset + 2]
-                .try_into()
-                .expect("slice with incorrent length"),
-        );
+        rr.class = u16::from_be_bytes(raw[*offset..*offset + 2].try_into().unwrap());
         *offset += 2;
 
         // parse ttl
-        rr.ttl = u32::from_be_bytes(
-            raw[*offset..*offset + 4]
-                .try_into()
-                .expect("slice with incorrent length"),
-        );
+        rr.ttl = u32::from_be_bytes(raw[*offset..*offset + 4].try_into().unwrap());
         *offset += 4;
 
         // parse rdlength
-        rr.rdlength = u16::from_be_bytes(
-            raw[*offset..*offset + 2]
-                .try_into()
-                .expect("slice with incorrent length"),
-        );
+        rr.rdlength = u16::from_be_bytes(raw[*offset..*offset + 2].try_into().unwrap());
         *offset += 2;
         if *offset + rr.rdlength as usize > raw.len() {
             return Err(packet_err);
@@ -243,6 +229,16 @@ impl ResourceRecord {
 
     pub fn rdata(&self) -> &RDataType {
         &self.rdata
+    }
+
+    pub fn convert_pseudo(&mut self) -> Result<PseudoRR, Error> {
+        if self.typ != TYPE_OPT {
+            return Err(anyhow!("not pseudo rr"));
+        }
+        match &self.rdata {
+            RDataType::OPT(_) => Ok(PseudoRR::from(self)),
+            _ => Err(anyhow!("not pseudo rr")),
+        }
     }
 }
 

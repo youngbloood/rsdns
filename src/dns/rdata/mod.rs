@@ -33,12 +33,12 @@ mod wks;
 
 use self::{
     a::A, cname::CName, hinfo::HInfo, mb::MB, md::MD, mf::MF, mg::MG, minfo::MInfo, mr::MR, mx::MX,
-    ns::NS, null::Null, ptr::PTR, soa::SOA, tsig::TSig, txt::TXT, wks::WKS,
+    ns::NS, null::Null, opt::OPT, ptr::PTR, soa::SOA, tsig::TSig, txt::TXT, wks::WKS,
 };
 use super::{
     compress_list::CompressList, labels::Labels, Type, TYPE_A, TYPE_CNAME, TYPE_HINFO, TYPE_MB,
-    TYPE_MD, TYPE_MF, TYPE_MG, TYPE_MINFO, TYPE_MR, TYPE_MX, TYPE_NS, TYPE_NULL, TYPE_PTR,
-    TYPE_SOA, TYPE_TXT, TYPE_WKS,
+    TYPE_MD, TYPE_MF, TYPE_MG, TYPE_MINFO, TYPE_MR, TYPE_MX, TYPE_NS, TYPE_NULL, TYPE_OPT,
+    TYPE_PTR, TYPE_SOA, TYPE_TXT, TYPE_WKS,
 };
 use crate::util;
 use anyhow::{bail, Error};
@@ -88,6 +88,7 @@ pub enum RDataType {
     A(A),
     WKS(WKS),
     TSig(TSig),
+    OPT(OPT),
 }
 
 impl RDataType {
@@ -113,6 +114,7 @@ impl RDataType {
             TYPE_TXT => Ok(RDataType::TXT(TXT::from(raw, _rdata)?)),
             TYPE_A => Ok(RDataType::A(A::from(raw, _rdata)?)),
             TYPE_WKS => Ok(RDataType::WKS(WKS::from(raw, _rdata)?)),
+            TYPE_OPT => Ok(RDataType::OPT(OPT::from(raw, _rdata)?)),
             _ => bail!(ERR_RDATE_TYPE),
         }
     }

@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Error};
 use rand::Rng;
 use rsbit::BitOperation;
 
@@ -36,14 +37,13 @@ impl Header {
         return hd;
     }
 
-    pub fn from(raw: &[u8], offset: &mut usize) -> Self {
-        let hd = Header(
-            raw[*offset..*offset + 12]
-                .try_into()
-                .expect("faled to covert to header"),
-        );
+    pub fn from(raw: &[u8], offset: &mut usize) -> Result<Self, Error> {
+        if raw.len() < 12 {
+            return Err(anyhow!("not completed dns header"));
+        }
+        let hd = Header(raw[*offset..*offset + 12].try_into().unwrap());
         *offset += 12;
-        return hd;
+        return Ok(hd);
     }
 
     fn set_bit(&mut self, index: usize, pos: u8, val: u8) -> &mut Self {
