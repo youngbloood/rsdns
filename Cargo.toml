@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.75"
 nom = "7.1.3"
-rsbit = { git = "https://github.com/youngbloood/rsbit.git", version = "*" }
+rsbit = { git = "https://github.com/youngbloood/rsbit.git", version = "0.1.*" }
 rand = "*"
 once_cell = "*"
+base64 = "*"

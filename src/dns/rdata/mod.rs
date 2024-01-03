@@ -12,24 +12,26 @@ is treated as binary information, and can be up to 256 characters in
 length (including the length octet).
  */
 
-mod a;
+pub mod a;
 pub mod cname;
-mod hinfo;
-mod mb;
-mod md;
-mod mf;
-mod mg;
-mod minfo;
-mod mr;
-mod mx;
-mod ns;
-mod null;
+pub mod dnskey;
+pub mod hinfo;
+pub mod mb;
+pub mod md;
+pub mod mf;
+pub mod mg;
+pub mod minfo;
+pub mod mr;
+pub mod mx;
+pub mod ns;
+pub mod null;
 pub mod opt;
-mod ptr;
-mod soa;
+pub mod ptr;
+pub mod rrsig;
+pub mod soa;
 pub mod tsig;
-mod txt;
-mod wks;
+pub mod txt;
+pub mod wks;
 
 use self::{
     a::A, cname::CName, hinfo::HInfo, mb::MB, md::MD, mf::MF, mg::MG, minfo::MInfo, mr::MR, mx::MX,
@@ -48,7 +50,7 @@ const ERR_RDATE_MSG: &str = "not completed rdate";
 const ERR_RDATE_TYPE: &str = "not standard rdata type";
 
 /**
-   RDateOperation contains decode and encod
+   RDateOperation contains decode and encode
    decode: decode the radate that u8 slice to the concrete rdata object.
    encode: encode the concrete rdata object to u8 slice.
 */
@@ -140,6 +142,7 @@ impl RDataOperation for RDataType {
             RDataType::A(a) => a.decode(raw, rdata),
             RDataType::WKS(wks) => wks.decode(raw, rdata),
             RDataType::TSig(tsig) => tsig.decode(raw, rdata),
+            RDataType::OPT(opt) => opt.decode(raw, rdata),
             _ => bail!(ERR_RDATE_TYPE),
         }
     }
@@ -168,6 +171,7 @@ impl RDataOperation for RDataType {
             RDataType::A(a) => a.encode(raw, cl, is_compressed),
             RDataType::WKS(wks) => wks.encode(raw, cl, is_compressed),
             RDataType::TSig(tsig) => tsig.encode(raw, cl, is_compressed),
+            RDataType::OPT(opt) => opt.encode(raw, cl, is_compressed),
             _ => bail!(ERR_RDATE_TYPE),
         }
     }
@@ -239,7 +243,7 @@ pub fn encode_domain_name(domain_name: &str) -> Vec<u8> {
 
     let mut names = domain_name.split(".").into_iter();
     let mut iter = names.next();
-    while iter.is_some() {
+    while iter.is_some() && iter.as_ref().unwrap().len() != 0 {
         r.push(iter.unwrap().len() as u8);
         r.extend_from_slice(&iter.unwrap().as_bytes().to_vec());
         iter = names.next();
@@ -419,7 +423,7 @@ pub fn encode_domain_name_wrap(
 
 #[cfg(test)]
 mod tests {
-    use super::parse_domain_name;
+    use super::*;
 
     #[test]
     fn test_parse_domain_name_without_raw() {
@@ -438,5 +442,12 @@ mod tests {
                 println!("labels = {:?}", labels);
             }
         }
+    }
+
+    #[test]
+    fn test_encode_domain_name() {
+        println!("rr={:?}", encode_domain_name(""));
+        println!("rr={:?}", encode_domain_name("com"));
+        println!("rr={:?}", encode_domain_name("baidu.com"));
     }
 }

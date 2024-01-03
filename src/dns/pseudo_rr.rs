@@ -23,6 +23,10 @@ impl<'a> PseudoRR<'a> {
         Self { 0: rr }
     }
 
+    pub fn rr(&mut self) -> &mut ResourceRecord {
+        self.0
+    }
+
     /// Sender's UDP payload size
     pub fn udp_payload(&self) -> u16 {
         if self.0.typ() != TYPE_OPT {

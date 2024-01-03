@@ -70,6 +70,12 @@ pub const TYPE_TXT: Type = 16;
 /// OPT
 pub const TYPE_OPT: Type = 41;
 
+/// RRSIG
+pub const TYPE_RRSIG: Type = 46;
+
+/// DNSKEY
+pub const TYPE_DNSKEY: Type = 48;
+
 /// for QType
 pub const TYPE_AXFR: Type = 252;
 
