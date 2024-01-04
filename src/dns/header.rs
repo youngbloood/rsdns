@@ -1,5 +1,6 @@
 use anyhow::{anyhow, Error};
 use rand::Rng;
+use rsbit::BitFlagOperation;
 use rsbit::BitOperation;
 
 /**
@@ -11,13 +12,13 @@ The header contains the following fields:
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 |                      ID                       |
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-|QR|   Opcode  |AA|TC|RD|RA|   Z    |   RCODE   |
+|QR|   Opcode  |AA|TC|RD|RA| Z|AD|CD|   RCODE   |
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-|                    QDCOUNT                    |
+|               QDCOUNT/ZOCOUNT                 |
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-|                    ANCOUNT                    |
+|               ANCOUNT/PRCOUNT                 |
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
-|                    NSCOUNT                    |
+|               NSCOUNT/UPCOUNT                 |
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 |                    ARCOUNT                    |
 +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
@@ -32,8 +33,7 @@ impl Header {
         let mut rng: rand::prelude::ThreadRng = rand::thread_rng();
         let id: u16 = rng.gen();
         let ids = id.to_be_bytes();
-        hd.0[0] = ids[0];
-        hd.0[1] = ids[1];
+        (hd.0[0], hd.0[1]) = (ids[0], ids[1]);
         return hd;
     }
 
@@ -83,7 +83,7 @@ impl Header {
     query (0), or a response (1).
     */
     pub fn qr(&self) -> bool {
-        return (self.0[2] & 0b1000_0000) == 0b1000_0000;
+        self.0[2].is_1(7)
     }
 
     pub fn with_qr(&mut self, rd: bool) -> &mut Self {
@@ -92,7 +92,8 @@ impl Header {
         } else {
             self.set_bit(2, 7, 0);
         }
-        return self;
+
+        self
     }
 
     /**
@@ -107,7 +108,7 @@ impl Header {
     ```
     */
     pub fn opcode(&self) -> u8 {
-        return (self.0[2] & 0b0111_1000) >> 3;
+        (self.0[2] & 0b0111_1000) >> 3
     }
 
     pub fn with_opcode(&mut self, opcode: u8) -> &mut Self {
@@ -137,7 +138,7 @@ impl Header {
             self.set_bit(2, 3, 0);
         }
 
-        return self;
+        self
     }
 
     /**
@@ -150,7 +151,7 @@ impl Header {
     the first owner name in the answer section.
     */
     pub fn aa(&self) -> bool {
-        return (self.0[2] & 0b0000_0100) == 0b0000_0100;
+        self.0[2].is_1(2)
     }
 
     pub fn with_aa(&mut self, aa: bool) -> &mut Self {
@@ -159,7 +160,8 @@ impl Header {
         } else {
             self.set_bit(2, 2, 0);
         }
-        return self;
+
+        self
     }
 
     /**
@@ -168,7 +170,7 @@ impl Header {
     transmission channel.
     */
     pub fn tc(&self) -> bool {
-        return (self.0[2] & 0b0000_0010) == 0b0000_0010;
+        self.0[2].is_1(1)
     }
 
     pub fn with_tc(&mut self, tc: bool) -> &mut Self {
@@ -177,7 +179,8 @@ impl Header {
         } else {
             self.set_bit(2, 1, 0);
         }
-        return self;
+
+        self
     }
 
     /**
@@ -189,7 +192,7 @@ impl Header {
     other ref: https://www.rfc-editor.org/rfc/rfc1034.html#section-4.3.1
     */
     pub fn rd(&self) -> bool {
-        return self.0[2] & 0b0000_0001 == 0b0000_0001;
+        self.0[2].is_1(0)
     }
 
     pub fn with_rd(&mut self, rd: bool) -> &mut Self {
@@ -198,7 +201,8 @@ impl Header {
         } else {
             self.set_bit(2, 0, 0);
         }
-        return self;
+
+        self
     }
 
     /**
@@ -209,7 +213,7 @@ impl Header {
     other ref: https://www.rfc-editor.org/rfc/rfc1034.html#section-4.3.1
     */
     pub fn ra(&self) -> bool {
-        return self.0[3] & 0b1000_0000 == 0b1000_0000;
+        self.0[3].is_1(7)
     }
 
     pub fn with_ra(&mut self, ra: bool) -> &mut Self {
@@ -218,40 +222,60 @@ impl Header {
         } else {
             self.set_bit(3, 7, 0);
         }
-        return self;
+
+        self
     }
 
     /**
     Reserved for future use.  Must be zero in all queries
     and responses.
     */
-    pub fn z(&self) -> u8 {
-        return (self.0[3] & 0b0111_0000) >> 4;
+    pub fn z(&self) -> bool {
+        self.0[3].is_1(6)
     }
 
-    pub fn with_z(&mut self, z: u8) -> &mut Self {
-        if z > 0x7 {
-            return self;
-        }
-        let _z = z << 4;
-
-        if _z & 0b0100_0000 == 0b0100_0000 {
+    pub fn with_z(&mut self, z: bool) -> &mut Self {
+        if z {
             self.set_bit(3, 6, 1);
         } else {
             self.set_bit(3, 6, 0);
         }
-        if _z & 0b0010_0000 == 0b0010_0000 {
+
+        self
+    }
+
+    /**
+    ad
+    */
+    pub fn ad(&self) -> bool {
+        self.0[3].is_1(5)
+    }
+
+    pub fn with_ad(&mut self, ad: bool) -> &mut Self {
+        if ad {
             self.set_bit(3, 5, 1);
         } else {
             self.set_bit(3, 5, 0);
         }
-        if _z & 0b0001_0000 == 0b0001_0000 {
+
+        self
+    }
+
+    /**
+    ad
+    */
+    pub fn cd(&self) -> bool {
+        self.0[3].is_1(4)
+    }
+
+    pub fn with_cd(&mut self, cd: bool) -> &mut Self {
+        if cd {
             self.set_bit(3, 4, 1);
         } else {
             self.set_bit(3, 4, 0);
         }
 
-        return self;
+        self
     }
 
     /**
@@ -284,7 +308,7 @@ impl Header {
     ```
     */
     pub fn rcode(&self) -> u8 {
-        return self.0[3] & 0b0000_1111;
+        self.0[3] & 0b0000_1111
     }
 
     pub fn with_rcode(&mut self, rcode: u8) -> &mut Self {
@@ -313,7 +337,7 @@ impl Header {
             self.set_bit(3, 0, 0);
         }
 
-        return self;
+        self
     }
 
     /**
@@ -322,13 +346,23 @@ impl Header {
     */
     pub fn qdcount(&self) -> u16 {
         let qd: [u8; 2] = [self.0[4], self.0[5]];
-        return u16::from_be_bytes(qd);
+
+        u16::from_be_bytes(qd)
     }
 
     pub fn with_qdcount(&mut self, qdcount: u16) -> &mut Self {
         let bts = qdcount.to_be_bytes();
         (self.0[4], self.0[5]) = (bts[0], bts[1]);
-        return self;
+
+        self
+    }
+
+    pub fn zocount(&self) -> u16 {
+        self.qdcount()
+    }
+
+    pub fn with_zocount(&mut self, zocount: u16) -> &mut Self {
+        self.with_qdcount(zocount)
     }
 
     /**
@@ -337,15 +371,24 @@ impl Header {
     */
     pub fn ancount(&self) -> u16 {
         let an = [self.0[6], self.0[7]];
-        return u16::from_be_bytes(an);
+
+        u16::from_be_bytes(an)
     }
 
     pub fn with_ancount(&mut self, ancount: u16) -> &mut Self {
         let bts = ancount.to_be_bytes();
         (self.0[6], self.0[7]) = (bts[0], bts[1]);
-        return self;
+
+        self
     }
 
+    pub fn prcount(&self) -> u16 {
+        self.ancount()
+    }
+
+    pub fn with_prcount(&mut self, prcount: u16) -> &mut Self {
+        self.with_ancount(prcount)
+    }
     /**
     an unsigned 16 bit integer specifying the number of name
     server resource records in the authority records
@@ -353,13 +396,23 @@ impl Header {
     */
     pub fn nscount(&self) -> u16 {
         let ns = [self.0[8], self.0[9]];
-        return u16::from_be_bytes(ns);
+
+        u16::from_be_bytes(ns)
     }
 
     pub fn with_nscount(&mut self, nscount: u16) -> &mut Self {
         let bts = nscount.to_be_bytes();
         (self.0[8], self.0[9]) = (bts[0], bts[1]);
-        return self;
+
+        self
+    }
+
+    pub fn upcount(&self) -> u16 {
+        self.nscount()
+    }
+
+    pub fn with_upcount(&mut self, upcount: u16) -> &mut Self {
+        self.with_nscount(upcount)
     }
 
     /**
@@ -368,13 +421,15 @@ impl Header {
     */
     pub fn arcount(&self) -> u16 {
         let ar = [self.0[10], self.0[11]];
-        return u16::from_be_bytes(ar);
+
+        u16::from_be_bytes(ar)
     }
 
     pub fn with_arcount(&mut self, arcount: u16) -> &mut Self {
         let bts = arcount.to_be_bytes();
         (self.0[10], self.0[11]) = (bts[0], bts[1]);
-        return self;
+
+        self
     }
 
     pub fn get_0(&self) -> [u8; 12] {
@@ -516,18 +571,52 @@ mod tests {
     #[test]
     pub fn test_header_z() {
         let head = Header([0, 0, 0, 0b0111_0000, 0, 0, 0, 0, 0, 0, 0, 0]);
-        assert_eq!(7, head.z());
+        assert_eq!(true, head.z());
     }
 
     #[test]
     pub fn test_header_with_z() {
         let mut head = Header([0; 12]);
-        head.with_z(1);
-        assert_eq!(1, head.z());
-        head.with_z(7);
-        assert_eq!(7, head.z());
-        head.with_z(8);
-        assert_eq!(7, head.z());
+        head.with_z(true);
+        assert_eq!(true, head.z());
+        head.with_z(false);
+        assert_eq!(false, head.z());
+        head.with_z(true);
+        assert_eq!(true, head.z());
+    }
+
+    #[test]
+    pub fn test_header_ad() {
+        let head = Header([0, 0, 0, 0b0111_0000, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(true, head.ad());
+    }
+
+    #[test]
+    pub fn test_header_with_ad() {
+        let mut head = Header([0; 12]);
+        head.with_ad(true);
+        assert_eq!(true, head.ad());
+        head.with_ad(false);
+        assert_eq!(false, head.ad());
+        head.with_ad(true);
+        assert_eq!(true, head.ad());
+    }
+
+    #[test]
+    pub fn test_header_cd() {
+        let head = Header([0, 0, 0, 0b0111_0000, 0, 0, 0, 0, 0, 0, 0, 0]);
+        assert_eq!(true, head.cd());
+    }
+
+    #[test]
+    pub fn test_header_with_cd() {
+        let mut head = Header([0; 12]);
+        head.with_cd(true);
+        assert_eq!(true, head.cd());
+        head.with_cd(false);
+        assert_eq!(false, head.cd());
+        head.with_cd(true);
+        assert_eq!(true, head.cd());
     }
 
     #[test]
