@@ -273,6 +273,18 @@ impl RRs {
     }
 }
 
+impl PartialEq for ResourceRecord {
+    fn eq(&self, other: &Self) -> bool {
+        self.all_length == other.all_length
+            && self.name == other.name
+            && self.typ == other.typ
+            && self.class == other.class
+            && self.ttl == other.ttl
+            && self.rdlength == other.rdlength
+        // && self.rdata == other.rdata
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -337,5 +349,23 @@ mod tests {
                 assert_eq!(cs.2, offset);
             }
         }
+    }
+
+    #[test]
+    pub fn test_rr_is_equal() {
+        let new_rr = |name, typ, class, ttl, rdlen| {
+            let mut rr = ResourceRecord::new();
+            rr.with_name(name)
+                .with_type(typ)
+                .with_class(class)
+                .with_ttl(ttl);
+            rr
+        };
+
+        let rr1 = new_rr("baidu.com", 1, 1, 32, 32);
+        let rr2 = new_rr("baidu.com", 1, 1, 32, 32);
+        let rr3 = new_rr("baidu.com", 1, 1, 33, 32);
+        assert_eq!(true, rr1 == rr2);
+        assert_eq!(false, rr1 == rr3);
     }
 }

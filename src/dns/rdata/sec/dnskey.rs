@@ -1,60 +1,18 @@
-use crate::{dns::rdata::ERR_RDATE_MSG, util::BASE64_ENGINE};
-
-use super::RDataOperation;
+use crate::{
+    dns::rdata::{RDataOperation, ERR_RDATE_MSG},
+    util::BASE64_ENGINE,
+};
 use anyhow::{anyhow, Error};
 use base64::Engine as _;
 use rsbit::BitOperation;
+
+use super::DNSKeyAlgorithm;
 
 const ZONE_KEY_FLAG: u8 = 0b0000_0001;
 const ZONE_KEY_POS: u8 = 0;
 const SECURE_ENTRY_POINT: u8 = 0b0000_0001;
 const SECURE_ENTRY_POINT_POS: u8 = 0;
 
-type DNSKeyAlgorithm = u8;
-
-/// RSA/MD5
-///
-/// [RFC2537](https://www.rfc-editor.org/rfc/rfc2537)
-///
-/// NOT RECOMMENDED
-const ALGO_RSAMD5: DNSKeyAlgorithm = 1;
-
-/// Diffie-Hellman
-///
-/// [RFC2539](https://www.rfc-editor.org/rfc/rfc2539)
-const ALGO_DH: DNSKeyAlgorithm = 2;
-
-/// DSA/SHA-1
-///
-/// [RFC2536](https://www.rfc-editor.org/rfc/rfc2536)
-///
-/// OPTIONAL
-const ALGO_DSA: DNSKeyAlgorithm = 3;
-
-/// Elliptic Curve
-///
-/// TBA
-const ALGO_ECC: DNSKeyAlgorithm = 4;
-
-/// RSA/SHA-1
-///
-/// [RFC3110](https://www.rfc-editor.org/rfc/rfc3110)
-///
-/// MANDATORY
-const ALGO_RSASHA1: DNSKeyAlgorithm = 5;
-
-/// Indirect
-const ALGO_INDIRECT: DNSKeyAlgorithm = 252;
-
-/// Private
-///
-/// OPTIONAL
-const ALGO_PRIVATEDNS: DNSKeyAlgorithm = 253;
-
-/// Private
-///
-/// OPTIONAL
-const ALGO_PRIVATEOID: DNSKeyAlgorithm = 254;
 /**
   The RDATA for a DNSKEY RR consists of a 2 octet Flags Field, a 1
   octet Protocol Field, a 1 octet Algorithm Field, and the Public Key

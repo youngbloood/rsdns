@@ -14,7 +14,6 @@ length (including the length octet).
 
 pub mod a;
 pub mod cname;
-pub mod dnskey;
 pub mod hinfo;
 pub mod mb;
 pub mod md;
@@ -27,7 +26,7 @@ pub mod ns;
 pub mod null;
 pub mod opt;
 pub mod ptr;
-pub mod rrsig;
+pub mod sec;
 pub mod soa;
 pub mod tsig;
 pub mod txt;
@@ -54,7 +53,9 @@ const ERR_RDATE_TYPE: &str = "not standard rdata type";
    decode: decode the radate that u8 slice to the concrete rdata object.
    encode: encode the concrete rdata object to u8 slice.
 */
+
 pub trait RDataOperation: Debug {
+    //+ PartialEq {
     /// decode: decode the radate that u8 slice to the concrete rdata object.
     fn decode(&mut self, raw: &[u8], rdata: &[u8]) -> Result<(), Error>;
 

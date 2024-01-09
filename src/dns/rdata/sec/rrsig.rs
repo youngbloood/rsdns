@@ -1,9 +1,11 @@
+use crate::{
+    dns::rdata::{RDataOperation, ERR_RDATE_MSG},
+    util::BASE64_ENGINE,
+};
 use anyhow::{anyhow, Error};
 use base64::Engine as _;
 
-use crate::{dns::rdata::ERR_RDATE_MSG, util::BASE64_ENGINE};
-
-use super::RDataOperation;
+use super::DNSKeyAlgorithm;
 
 /**
     The RDATA for an RRSIG RR consists of a 2 octet Type Covered field, a
@@ -46,7 +48,7 @@ pub struct RRSig {
     used to create the signature.  A list of DNSSEC algorithm types can
     be found in [Appendix A.1](https://www.rfc-editor.org/rfc/rfc4034#appendix-A.1)
     */
-    pub algorithm: u8,
+    pub algorithm: DNSKeyAlgorithm,
 
     /**
     The Labels field specifies the number of labels in the original RRSIG
@@ -144,16 +146,56 @@ pub struct RRSig {
     The Signer's Name field MUST contain the name of the zone of the
     covered RRset.  A sender MUST NOT use DNS name compression on the
     Signer's Name field when transmitting a RRSIG RR.
+
+    NOTE: not compression
     */
     pub signer_name: Vec<u8>,
 
     /**
-    The Signature field contains the cryptographic signature that covers
-    the RRSIG RDATA (excluding the Signature field) and the RRset
-    specified by the RRSIG owner name, RRSIG class, and RRSIG Type
-    Covered field.  The format of this field depends on the algorithm in
-    use, and these formats are described in separate companion documents.
-    */
+     The Signature field contains the cryptographic signature that covers
+     the RRSIG RDATA (excluding the Signature field) and the RRset
+     specified by the RRSIG owner name, RRSIG class, and RRSIG Type
+     Covered field.  The format of this field depends on the algorithm in
+     use, and these formats are described in separate companion documents.
+
+     # ref: [Signature Calculation](https://www.rfc-editor.org/rfc/rfc4034#section-3.1.8.1)
+     A signature covers the RRSIG RDATA (excluding the Signature Field)
+     and covers the data RRset specified by the RRSIG owner name, RRSIG
+     class, and RRSIG Type Covered fields.  The RRset is in canonical form
+     (see Section 6), and the set RR(1),...RR(n) is signed as follows:
+
+         signature = sign(RRSIG_RDATA | RR(1) | RR(2)... ) where
+
+             "|" denotes concatenation;
+
+             RRSIG_RDATA is the wire format of the RRSIG RDATA fields
+                with the Signer's Name field in canonical form and
+                the Signature field excluded;
+
+             RR(i) = owner | type | class | TTL | RDATA length | RDATA
+
+                "owner" is the fully qualified owner name of the RRset in
+                canonical form (for RRs with wildcard owner names, the
+                wildcard label is included in the owner name);
+
+                Each RR MUST have the same owner name as the RRSIG RR;
+
+                Each RR MUST have the same class as the RRSIG RR;
+
+                Each RR in the RRset MUST have the RR type listed in the
+                RRSIG RR's Type Covered field;
+
+                Each RR in the RRset MUST have the TTL listed in the
+                RRSIG Original TTL Field;
+
+                Any DNS names in the RDATA field of each RR MUST be in
+                canonical form; and
+
+                The RRset MUST be sorted in canonical order.
+
+    See Sections 6.2 and 6.3 for details on canonical form and ordering
+    of RRsets.
+     */
     pub signature: Vec<u8>,
 }
 
