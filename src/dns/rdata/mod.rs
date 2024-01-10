@@ -54,8 +54,7 @@ const ERR_RDATE_TYPE: &str = "not standard rdata type";
    encode: encode the concrete rdata object to u8 slice.
 */
 
-pub trait RDataOperation: Debug {
-    //+ PartialEq {
+pub trait RDataOperation: Debug + PartialEq {
     /// decode: decode the radate that u8 slice to the concrete rdata object.
     fn decode(&mut self, raw: &[u8], rdata: &[u8]) -> Result<(), Error>;
 
@@ -71,7 +70,7 @@ pub trait RDataOperation: Debug {
 /**
 RDateType union all the Object that impl the RDataOperation
  */
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub enum RDataType {
     None,
     CName(CName),

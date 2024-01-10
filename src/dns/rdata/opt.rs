@@ -30,7 +30,7 @@ use anyhow::anyhow;
 use anyhow::Error;
 use anyhow::Ok;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct OPT {
     pub code: u16,
     pub length: u16,

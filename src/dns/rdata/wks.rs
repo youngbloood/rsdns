@@ -52,7 +52,7 @@ use anyhow::anyhow;
 use anyhow::Error;
 use std::net::Ipv4Addr;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct WKS {
     /// An 32 bit Internet address
     addr: Ipv4Addr,

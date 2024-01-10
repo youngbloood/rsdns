@@ -12,3 +12,4 @@ rsbit = { git = "https://github.com/youngbloood/rsbit.git", version = "0.1.*" }
 rand = "*"
 once_cell = "*"
 base64 = "*"
+rust-crypto = "*"

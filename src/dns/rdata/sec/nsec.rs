@@ -43,7 +43,7 @@ The RDATA of the NSEC RR is as shown below:
    +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
   */
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct NSEC {
     /**
     The Next Domain field contains the next owner name (in the canonical

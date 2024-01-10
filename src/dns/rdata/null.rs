@@ -20,7 +20,7 @@ use super::RDataOperation;
 use crate::dns::compress_list::CompressList;
 use anyhow::Error;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct Null(Vec<u8>);
 
 impl Null {

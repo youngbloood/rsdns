@@ -25,7 +25,7 @@ use crate::dns::{compress_list::CompressList, rdata::ERR_RDATE_MSG};
 use anyhow::{anyhow, Error, Ok};
 use std::net::Ipv4Addr;
 
-#[derive(Debug, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct A(pub Ipv4Addr);
 
 impl A {
@@ -59,11 +59,5 @@ impl RDataOperation for A {
         raw.extend_from_slice(&encoded);
 
         Ok(encoded.len())
-    }
-}
-
-impl PartialEq for A {
-    fn eq(&self, other: &Self) -> bool {
-        self.0 == other.0
     }
 }

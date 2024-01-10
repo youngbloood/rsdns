@@ -19,7 +19,7 @@ use super::RDataOperation;
 use crate::dns::compress_list::CompressList;
 use anyhow::Error;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct TXT(pub String);
 
 impl TXT {

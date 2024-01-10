@@ -29,7 +29,7 @@ use super::{encode_domain_name_wrap, parse_domain_name_without_len, RDataOperati
 use crate::dns::compress_list::CompressList;
 use anyhow::Error;
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct NS(pub String);
 
 impl NS {

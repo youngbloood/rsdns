@@ -6,7 +6,7 @@ use anyhow::{anyhow, Error};
 use base64::Engine as _;
 use rsbit::BitOperation;
 
-use super::DNSKeyAlgorithm;
+use super::algo::DNSSecAlgorithm;
 
 const ZONE_KEY_FLAG: u8 = 0b0000_0001;
 const ZONE_KEY_POS: u8 = 0;
@@ -30,7 +30,7 @@ const SECURE_ENTRY_POINT_POS: u8 = 0;
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   ```
 */
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DNSKEY {
     /**
     Bit 7 of the Flags field is the Zone Key flag.  If bit 7 has value 1,
@@ -68,7 +68,7 @@ pub struct DNSKEY {
     algorithm and determines the format of the Public Key field.  A list
     of DNSSEC algorithm types can be found in [Appendix A.1](https://www.rfc-editor.org/rfc/rfc4034#appendix-A.1)
     */
-    pub algorithm: DNSKeyAlgorithm,
+    pub algorithm: DNSSecAlgorithm,
 
     /**
     The Public Key Field holds the public key material.  The format
@@ -86,6 +86,20 @@ impl DNSKEY {
             algorithm: 0,
             pub_key: Vec::new(),
         }
+    }
+
+    pub fn all_len(&self) -> usize {
+        4 + self.pub_key.len()
+    }
+
+    pub fn as_bytes(&self) -> Vec<u8> {
+        let mut r = vec![];
+        r.extend(self.flags.to_be_bytes());
+        r.push(self.protocol);
+        r.push(self.algorithm);
+        r.extend(&self.pub_key);
+
+        r
     }
 
     pub fn from(raw: &[u8], rdata: &[u8]) -> Result<Self, Error> {
@@ -136,9 +150,7 @@ impl RDataOperation for DNSKEY {
         self.flags = u16::from_be_bytes(rdata[..2].try_into().unwrap());
         self.protocol = rdata[2];
         self.algorithm = rdata[3];
-
-        self.pub_key = BASE64_ENGINE.decode(rdata[3..].to_vec())?;
-
+        self.pub_key = BASE64_ENGINE.decode(rdata[4..].to_vec())?;
         Ok(())
     }
 
@@ -179,5 +191,16 @@ mod tests {
 
         dnskey.with_flag_sec_entry_point(false);
         assert_eq!(0, dnskey.flags);
+    }
+
+    #[test]
+    fn test_dnskey_decode() {
+        let pub_key = "AQPSKmynfzW4kyBv015MUG2DeIQ3Cbl+BBZH4b/0PY1kxkmvHjcZc8nokfzj31GajIQKY+5CptLr3buXA10hWqTkF7H6RfoRqXQeogmMHfpftf6zMv1LyBUgia7za6ZEzOJBOztyvhjL742iU/TpPSEDhm2SNKLijfUppn1UaNvv4w==";
+        let mut rdata = vec![16_u8, 11, 3, 1];
+        rdata.extend(pub_key.as_bytes());
+
+        let mut dnskey = DNSKEY::new();
+        let result = dnskey.decode(&rdata, &rdata);
+        assert_eq!(false, result.is_err());
     }
 }

@@ -36,7 +36,7 @@ use super::{encode_domain_name_wrap, parse_domain_name_without_len, RDataOperati
 use crate::dns::{compress_list::CompressList, rdata::ERR_RDATE_MSG};
 use anyhow::{anyhow, Error};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct MInfo {
     pub rmail_bx: String,
     pub email_bx: String,

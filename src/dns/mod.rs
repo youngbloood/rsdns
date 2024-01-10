@@ -70,8 +70,14 @@ pub const TYPE_TXT: Type = 16;
 /// OPT
 pub const TYPE_OPT: Type = 41;
 
+/// DS
+pub const TYPE_DS: Type = 43;
+
 /// RRSIG
 pub const TYPE_RRSIG: Type = 46;
+
+/// NSEC
+pub const TYPE_NSEC: Type = 47;
 
 /// DNSKEY
 pub const TYPE_DNSKEY: Type = 48;

@@ -27,11 +27,9 @@
    The DS RR has no special TTL requirements.
 */
 
-use anyhow::{anyhow, Error};
-
+use super::{algo::DigestAlgorithm, key_tag::KeyTag};
 use crate::dns::rdata::{RDataOperation, ERR_RDATE_MSG};
-
-use super::DNSKeyAlgorithm;
+use anyhow::{anyhow, Error};
 
 /**
   The RDATA for a DS RR consists of a 2 octet Key Tag field, a 1 octet
@@ -48,7 +46,7 @@ use super::DNSKeyAlgorithm;
   +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
   ```
 */
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct DS {
     /**
     The Key Tag field lists the key tag of the DNSKEY RR referred to by
@@ -57,7 +55,7 @@ pub struct DS {
     The Key Tag used by the DS RR is identical to the Key Tag used by
     RRSIG RRs.  [Appendix B](https://www.rfc-editor.org/rfc/rfc4034#appendix-B) describes how to compute a Key Tag.
     */
-    pub key_tag: u16,
+    pub key_tag: KeyTag,
 
     /**
     The Algorithm field lists the algorithm number of the DNSKEY RR
@@ -67,7 +65,7 @@ pub struct DS {
     number used by RRSIG and DNSKEY RRs.  [Appendix A.1](https://www.rfc-editor.org/rfc/rfc4034#appendix-A.1) lists the
     algorithm number types.
     */
-    pub algorithm: DNSKeyAlgorithm,
+    pub algorithm: DigestAlgorithm,
 
     /**
     The DS RR refers to a DNSKEY RR by including a digest of that DNSKEY

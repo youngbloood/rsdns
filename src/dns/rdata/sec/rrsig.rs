@@ -1,11 +1,10 @@
+use super::{algo::DNSSecAlgorithm, key_tag::KeyTag};
 use crate::{
     dns::rdata::{RDataOperation, ERR_RDATE_MSG},
     util::BASE64_ENGINE,
 };
 use anyhow::{anyhow, Error};
 use base64::Engine as _;
-
-use super::DNSKeyAlgorithm;
 
 /**
     The RDATA for an RRSIG RR consists of a 2 octet Type Covered field, a
@@ -35,7 +34,7 @@ use super::DNSKeyAlgorithm;
     +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
     ```
 */
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct RRSig {
     /**
     The Type Covered field identifies the type of the RRset that is
@@ -48,7 +47,7 @@ pub struct RRSig {
     used to create the signature.  A list of DNSSEC algorithm types can
     be found in [Appendix A.1](https://www.rfc-editor.org/rfc/rfc4034#appendix-A.1)
     */
-    pub algorithm: DNSKeyAlgorithm,
+    pub algorithm: DNSSecAlgorithm,
 
     /**
     The Labels field specifies the number of labels in the original RRSIG
@@ -138,7 +137,7 @@ pub struct RRSig {
     validates this signature, in network byte order.  [Appendix B](https://www.rfc-editor.org/rfc/rfc4034#appendix-B) explains
     how to calculate Key Tag values.
     */
-    pub key_tag: u16,
+    pub key_tag: KeyTag,
 
     /**
     The Signer's Name field value identifies the owner name of the DNSKEY

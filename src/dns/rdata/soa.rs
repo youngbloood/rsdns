@@ -72,7 +72,7 @@ use super::{encode_domain_name_wrap, parse_domain_name_without_len, RDataOperati
 use crate::dns::{compress_list::CompressList, rdata::ERR_RDATE_MSG};
 use anyhow::{anyhow, Error, Ok};
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct SOA {
     /// The <domain-name> of the name server that was the original or primary source of data for this zone.
     pub mname: String,

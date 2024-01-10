@@ -34,7 +34,7 @@ use anyhow::{anyhow, Error};
 ///     /                                               /
 ///     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 /// ```
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ResourceRecord {
     all_length: usize,
 
@@ -242,6 +242,7 @@ impl ResourceRecord {
     }
 }
 
+/// RRs, RR sets
 #[derive(Debug)]
 pub struct RRs(pub VecRcRf<ResourceRecord>);
 
@@ -258,6 +259,21 @@ impl RRs {
         self.0.push(rr);
     }
 
+    pub fn sort(&mut self) {
+        self.0.sort_by(|a, b| {
+            let abrw = a.borrow();
+            let anamev: Vec<&str> = abrw.name.rsplit('.').collect();
+
+            let bbrw = b.borrow();
+            let bnamev: Vec<&str> = bbrw.name.rsplit('.').collect();
+
+            let aname = anamev.join(".");
+            let bname = bnamev.join(".");
+
+            aname.cmp(&bname)
+        })
+    }
+
     pub fn encode(
         &mut self,
         raw: &mut Vec<u8>,
@@ -270,18 +286,6 @@ impl RRs {
         }
 
         Ok(())
-    }
-}
-
-impl PartialEq for ResourceRecord {
-    fn eq(&self, other: &Self) -> bool {
-        self.all_length == other.all_length
-            && self.name == other.name
-            && self.typ == other.typ
-            && self.class == other.class
-            && self.ttl == other.ttl
-            && self.rdlength == other.rdlength
-        // && self.rdata == other.rdata
     }
 }
 

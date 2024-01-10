@@ -29,7 +29,7 @@ use anyhow::Error;
 
 // adapt RFC8482
 // ref: https://www.rfc-editor.org/rfc/rfc8482#section-4.2
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct HInfo {
     /// weather the HInfo is synthesized.
     ///
