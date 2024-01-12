@@ -202,12 +202,12 @@ impl RRSig {
     pub fn new() -> Self {
         Self {
             type_covered: 0,
-            algorithm: 0,
+            algorithm: DNSSecAlgorithm::new(0),
             labels: 0,
             origin_ttl: 0,
             sig_expiration: 0,
             sig_inception: 0,
-            key_tag: 0,
+            key_tag: KeyTag::new(0),
             signer_name: Vec::new(),
             signature: Vec::new(),
         }
@@ -227,12 +227,12 @@ impl RDataOperation for RRSig {
             return Err(anyhow!(ERR_RDATE_MSG));
         }
         self.type_covered = u16::from_be_bytes(rdata[..2].try_into().unwrap());
-        self.algorithm = rdata[2];
+        self.algorithm = DNSSecAlgorithm::new(rdata[2]);
         self.labels = rdata[3];
         self.origin_ttl = u32::from_be_bytes(rdata[4..8].try_into().unwrap());
         self.sig_expiration = u32::from_be_bytes(rdata[8..12].try_into().unwrap());
         self.sig_inception = u32::from_be_bytes(rdata[12..16].try_into().unwrap());
-        self.key_tag = u16::from_be_bytes(rdata[16..18].try_into().unwrap());
+        self.key_tag = KeyTag::new(u16::from_be_bytes(rdata[16..18].try_into().unwrap()));
 
         todo!("signer_name and signature");
 
@@ -246,12 +246,12 @@ impl RDataOperation for RRSig {
         _is_compressed: bool,
     ) -> Result<usize, Error> {
         raw.extend(self.type_covered.to_be_bytes());
-        raw.push(self.algorithm);
+        raw.push(self.algorithm.algo());
         raw.push(self.labels);
         raw.extend(self.origin_ttl.to_be_bytes());
         raw.extend(self.sig_expiration.to_be_bytes());
         raw.extend(self.sig_inception.to_be_bytes());
-        raw.extend(self.key_tag.to_be_bytes());
+        raw.extend(self.key_tag.key_tag().to_be_bytes());
         raw.extend(&self.signer_name);
         raw.extend(BASE64_ENGINE.encode(&self.signature).as_bytes());
 

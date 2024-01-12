@@ -183,13 +183,11 @@ impl ResourceRecord {
         return self;
     }
 
-    // pub fn rdata(&self) -> Ipv4Addr {
-    //     return Ipv4Addr::from(&self.rdata);
-    // }
+    pub fn rdata(&self) -> &RDataType {
+        &self.rdata
+    }
 
     pub fn with_rdata(&mut self, resource: RDataType) -> &mut Self {
-        // let mut rdate = RDataType::new();
-        // rdate.with_resource(resource);
         self.rdata = resource;
         return self;
     }
@@ -227,10 +225,6 @@ impl ResourceRecord {
         Ok(())
     }
 
-    pub fn rdata(&self) -> &RDataType {
-        &self.rdata
-    }
-
     pub fn convert_pseudo(&mut self) -> Result<PseudoRR, Error> {
         if self.typ != TYPE_OPT {
             return Err(anyhow!("not pseudo rr"));
@@ -259,6 +253,40 @@ impl RRs {
         self.0.push(rr);
     }
 
+    /**
+    ref: https://www.rfc-editor.org/rfc/rfc4034#section-6.1
+
+    ## Canonical DNS Name Order
+
+    For the purposes of DNS security, owner names are ordered by treating
+    individual labels as unsigned left-justified octet strings.  The
+    absence of a octet sorts before a zero value octet, and uppercase
+    US-ASCII letters are treated as if they were lowercase US-ASCII
+    letters.
+
+    To compute the canonical ordering of a set of DNS names, start by
+    sorting the names according to their most significant (rightmost)
+    labels.  For names in which the most significant label is identical,
+    continue sorting according to their next most significant label, and
+    so forth.
+
+    For example, the following names are sorted in canonical DNS name
+    order.  The most significant label is "example".  At this level,
+    "example" sorts first, followed by names ending in "a.example", then
+    by names ending "z.example".  The names within each level are sorted
+    in the same way.
+    ```shell
+            example
+            a.example
+            yljkjljk.a.example
+            Z.a.example
+            zABC.a.EXAMPLE
+            z.example
+            \001.z.example
+            *.z.example
+            \200.z.example
+    ```
+    */
     pub fn sort(&mut self) {
         self.0.sort_by(|a, b| {
             let abrw = a.borrow();

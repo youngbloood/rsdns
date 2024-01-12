@@ -40,7 +40,8 @@ pub struct DNSKEY {
     NOT be used to verify RRSIGs that cover RRsets.
 
     Bit 15 of the Flags field is the Secure Entry Point flag, described
-    in [RFC3757](https://www.rfc-editor.org/rfc/rfc3757).  If bit 15 has value 1, then the DNSKEY record holds a
+    in [RFC3757](https://www.rfc-editor.org/rfc/rfc3757).
+    If bit 15 has value 1, then the DNSKEY record holds a
     key intended for use as a secure entry point.  This flag is only
     intended to be a hint to zone signing or debugging software as to the
     intended use of this DNSKEY record; validators MUST NOT alter their
@@ -83,7 +84,7 @@ impl DNSKEY {
         Self {
             flags: 0,
             protocol: 3,
-            algorithm: 0,
+            algorithm: DNSSecAlgorithm::new(0),
             pub_key: Vec::new(),
         }
     }
@@ -96,7 +97,7 @@ impl DNSKEY {
         let mut r = vec![];
         r.extend(self.flags.to_be_bytes());
         r.push(self.protocol);
-        r.push(self.algorithm);
+        r.push(self.algorithm.algo());
         r.extend(&self.pub_key);
 
         r
@@ -149,7 +150,7 @@ impl RDataOperation for DNSKEY {
         }
         self.flags = u16::from_be_bytes(rdata[..2].try_into().unwrap());
         self.protocol = rdata[2];
-        self.algorithm = rdata[3];
+        self.algorithm = DNSSecAlgorithm::new(rdata[3]);
         self.pub_key = BASE64_ENGINE.decode(rdata[4..].to_vec())?;
         Ok(())
     }
@@ -162,7 +163,7 @@ impl RDataOperation for DNSKEY {
     ) -> Result<usize, Error> {
         raw.extend(self.flags.to_be_bytes());
         raw.push(self.protocol);
-        raw.push(self.algorithm);
+        raw.push(self.algorithm.algo());
         raw.extend(BASE64_ENGINE.encode(&self.pub_key).as_bytes());
 
         Ok(4 + self.pub_key.len())

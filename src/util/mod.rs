@@ -1,8 +1,13 @@
+pub mod bit_map;
+
 use base64::{
     alphabet::STANDARD,
     engine::{GeneralPurpose, GeneralPurposeConfig},
 };
 use once_cell::sync::Lazy;
+
+pub static BASE64_ENGINE: Lazy<GeneralPurpose> =
+    Lazy::new(|| GeneralPurpose::new(&STANDARD, GeneralPurposeConfig::new()));
 
 /// is_compressed judge the rrs weather use the compress.
 /// if the third byte is zero and the first byte's first and second bit is 1, it represent compressed. or not
@@ -22,9 +27,6 @@ pub fn is_compressed_wrap(raw: &[u8]) -> (usize, bool) {
     }
     return is_compressed(raw[..2].try_into().expect("get the compressed pointer"));
 }
-
-pub static BASE64_ENGINE: Lazy<GeneralPurpose> =
-    Lazy::new(|| GeneralPurpose::new(&STANDARD, GeneralPurposeConfig::new()));
 
 #[cfg(test)]
 mod tests {

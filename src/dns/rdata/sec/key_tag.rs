@@ -1,3 +1,5 @@
+use crate::dns::{self, rdata::RDataType, rr::RRs, TYPE_DNSKEY};
+
 use super::{algo::DNSSEC_ALGORITHM1, dnskey::DNSKEY};
 
 /**
@@ -38,75 +40,109 @@ use super::{algo::DNSSEC_ALGORITHM1, dnskey::DNSKEY};
 
     The following ANSI C reference implementation calculates the value of
     a Key Tag.  This reference implementation applies to all algorithm
-    types except algorithm 1 (see [Appendix B.1](https://www.rfc-editor.org/rfc/rfc4034#appendix-B.1)).  The input is the wire
-    format of the RDATA portion of the DNSKEY RR.  The code is written
-    for clarity, not efficiency.
+    types except algorithm 1 (see [Appendix B.1](https://www.rfc-editor.org/rfc/rfc4034#appendix-B.1)).
+    The input is the wire format of the RDATA portion of the DNSKEY RR.
+    The code is written for clarity, not efficiency.
 */
-pub type KeyTag = u16;
+#[derive(Debug, PartialEq, Eq)]
+pub struct KeyTag(u16);
 
-/**
-   Assumes that int is at least 16 bits.
-   First octet of the key tag is the most significant 8 bits of the
-   return value;
-   Second octet of the key tag is the least significant 8 bits of the
-   return value.
-
-   ## C Code Impl
-   ```C
-    unsigned int
-    keytag (
-        unsigned char key[],  /* the RDATA part of the DNSKEY RR */
-        unsigned int keysize  /* the RDLENGTH */
-    )
-    {
-        unsigned long ac;     /* assumed to be 32 bits or larger */
-        int i;                /* loop index */
-
-        for ( ac = 0, i = 0; i < keysize; ++i )
-                ac += (i & 1) ? key[i] : key[i] << 8;
-        ac += (ac >> 16) & 0xFFFF;
-        return ac & 0xFFFF;
-    }
-    ```
-*/
-pub fn calc_key_tag(dnskey: &DNSKEY) -> KeyTag {
-    if dnskey.algorithm == DNSSEC_ALGORITHM1 {
-        return calc_key_tag_for_1(dnskey);
+impl KeyTag {
+    pub fn new(key_tag: u16) -> Self {
+        Self { 0: key_tag }
     }
 
-    let key = dnskey.as_bytes();
-    let keysize = dnskey.all_len(); /* the RDLENGTH */
+    pub fn key_tag(&self) -> u16 {
+        self.0
+    }
 
-    let mut ac: usize = 0; /* assumed to be 32 bits or larger */
-    let mut i = 0; /* loop index */
-    while i < keysize {
-        if i & 1 > 0 {
-            ac += *key.get(i).unwrap() as usize;
-        } else {
-            ac += (*key.get(i).unwrap() << 8) as usize;
+    /**
+       Assumes that int is at least 16 bits.
+       First octet of the key tag is the most significant 8 bits of the
+       return value;
+       Second octet of the key tag is the least significant 8 bits of the
+       return value.
+
+       ## C Code Impl
+       ```C
+        unsigned int
+        keytag (
+            unsigned char key[],  /* the RDATA part of the DNSKEY RR */
+            unsigned int keysize  /* the RDLENGTH */
+        )
+        {
+            unsigned long ac;     /* assumed to be 32 bits or larger */
+            int i;                /* loop index */
+
+            for ( ac = 0, i = 0; i < keysize; ++i )
+                    ac += (i & 1) ? key[i] : key[i] << 8;
+            ac += (ac >> 16) & 0xFFFF;
+            return ac & 0xFFFF;
         }
-        i += 1;
+        ```
+    */
+    pub fn calc(&mut self, dnskey: &DNSKEY) {
+        self.0 = Self::_calc(dnskey);
     }
-    ac += (ac >> 16) & 0xFFFF;
 
-    (ac & 0xFFFF) as KeyTag
-}
+    fn _calc(dnskey: &DNSKEY) -> u16 {
+        if dnskey.algorithm.algo() == DNSSEC_ALGORITHM1 {
+            return Self::calc_key_tag_for_1(dnskey);
+        }
 
-/**
-## Key Tag for Algorithm 1 (RSA/MD5)
+        let key = dnskey.as_bytes();
+        let keysize = dnskey.all_len(); /* the RDLENGTH */
 
-  The key tag for algorithm 1 (RSA/MD5) is defined differently from the
-  key tag for all other algorithms, for historical reasons.  For a
-  DNSKEY RR with algorithm 1, the key tag is defined to be the most
-  significant 16 bits of the least significant 24 bits in the public
-  key modulus (in other words, the 4th to last and 3rd to last octets
-  of the public key modulus).
+        let mut ac: usize = 0; /* assumed to be 32 bits or larger */
+        let mut i = 0; /* loop index */
+        while i < keysize {
+            if i & 1 > 0 {
+                ac += *key.get(i).unwrap() as usize;
+            } else {
+                continue;
+            }
+            i += 1;
+        }
+        ac += (ac >> 16) & 0xFFFF;
 
-  Please note that Algorithm 1 is NOT RECOMMENDED.
-*/
-fn calc_key_tag_for_1(dnskey: &DNSKEY) -> KeyTag {
-    let len = dnskey.pub_key.len();
-    let kt = [dnskey.pub_key[len - 3], dnskey.pub_key[len - 2]];
+        (ac & 0xFFFF) as u16
+    }
 
-    u16::from_be_bytes(kt)
+    /// return the index of the valid rr in rrs
+    pub fn find_dnskey(&self, rrs: &RRs) -> i32 {
+        for (i, rr) in rrs.0.iter().enumerate() {
+            if rr.clone().borrow().typ() != TYPE_DNSKEY {
+                continue;
+            }
+            if let RDataType::DNSKEY(dnskey) = rr.clone().borrow().rdata() {
+                if self.0 == Self::_calc(dnskey) {
+                    return i as i32;
+                }
+            }
+        }
+
+        -1
+    }
+
+    /**
+    ## Key Tag for Algorithm 1 (RSA/MD5)
+
+      The key tag for algorithm 1 (RSA/MD5) is defined differently from the
+      key tag for all other algorithms, for historical reasons.  For a
+      DNSKEY RR with algorithm 1, the key tag is defined to be the most
+      significant 16 bits of the least significant 24 bits in the public
+      key modulus (in other words, the 4th to last and 3rd to last octets
+      of the public key modulus).
+
+      Please note that Algorithm 1 is NOT RECOMMENDED.
+    */
+    fn calc_key_tag_for_1(dnskey: &DNSKEY) -> u16 {
+        if dnskey.algorithm.algo() != DNSSEC_ALGORITHM1 {
+            return 0;
+        }
+        let len = dnskey.pub_key.len();
+        let kt = [dnskey.pub_key[len - 3], dnskey.pub_key[len - 2]];
+
+        u16::from_be_bytes(kt)
+    }
 }

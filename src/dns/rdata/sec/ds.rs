@@ -98,8 +98,8 @@ pub struct DS {
 impl DS {
     pub fn new() -> Self {
         Self {
-            key_tag: 0,
-            algorithm: 0,
+            key_tag: KeyTag::new(0),
+            algorithm: DigestAlgorithm::new(0),
             digest_type: 0,
             digest: Vec::new(),
         }
@@ -118,8 +118,8 @@ impl RDataOperation for DS {
         if rdata.len() < 4 {
             return Err(anyhow!(ERR_RDATE_MSG));
         }
-        self.key_tag = u16::from_be_bytes(rdata[..2].try_into().unwrap());
-        self.algorithm = rdata[2];
+        self.key_tag = KeyTag::new(u16::from_be_bytes(rdata[..2].try_into().unwrap()));
+        self.algorithm = DigestAlgorithm::new(rdata[2]);
         self.digest_type = rdata[3];
         self.digest = rdata[4..].to_vec();
 
@@ -132,8 +132,8 @@ impl RDataOperation for DS {
         _cl: &mut crate::dns::compress_list::CompressList,
         _is_compressed: bool,
     ) -> Result<usize, anyhow::Error> {
-        raw.extend(self.key_tag.to_be_bytes());
-        raw.push(self.algorithm);
+        raw.extend(self.key_tag.key_tag().to_be_bytes());
+        raw.push(self.algorithm.algo());
         raw.push(self.digest_type);
         raw.extend(&self.digest);
 

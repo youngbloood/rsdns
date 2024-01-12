@@ -27,7 +27,7 @@ The NSEC resource record lists two separate things: the next owner
    field.  This is in the spirit of negative caching ([RFC2308]).
  */
 
-use crate::dns::rdata::{parse_domain_name, RDataOperation, ERR_RDATE_MSG};
+use crate::dns::rdata::{encode_domain_name, parse_domain_name, RDataOperation, ERR_RDATE_MSG};
 use anyhow::{anyhow, Error};
 
 /**
@@ -112,14 +112,14 @@ pub struct NSEC {
     A zone MUST NOT include an NSEC RR for any domain name that only
     holds glue records.
     */
-    pub type_bit_maps: u32,
+    pub type_bit_maps: Vec<u8>,
 }
 
 impl NSEC {
     pub fn new() -> Self {
         Self {
             next_domain_name: "".to_string(),
-            type_bit_maps: 0,
+            type_bit_maps: vec![],
         }
     }
     pub fn from(raw: &[u8], rdata: &[u8]) -> Result<Self, Error> {
@@ -136,7 +136,7 @@ impl RDataOperation for NSEC {
         }
         let (domain_names, length) = parse_domain_name(raw, rdata)?;
         self.next_domain_name = domain_names.get(0).unwrap().encode_to_str();
-        self.type_bit_maps = u32::from_be_bytes(rdata[length..].try_into().unwrap());
+        self.type_bit_maps = rdata[length..].to_vec();
 
         Ok(())
     }
@@ -147,9 +147,10 @@ impl RDataOperation for NSEC {
         _cl: &mut crate::dns::compress_list::CompressList,
         _is_compressed: bool,
     ) -> Result<usize, anyhow::Error> {
-        raw.extend(self.next_domain_name.as_bytes());
-        raw.extend(self.type_bit_maps.to_be_bytes());
+        let encoded_domain_name = encode_domain_name(self.next_domain_name.as_str());
+        raw.extend(&encoded_domain_name);
+        raw.extend(&self.type_bit_maps);
 
-        Ok(4 + 4)
+        Ok(encoded_domain_name.len() + self.type_bit_maps.len())
     }
 }

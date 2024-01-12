@@ -1,3 +1,5 @@
+pub mod rsa_sha1;
+
 /**
 Ref: https://www.iana.org/assignments/dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml
 
@@ -61,25 +63,32 @@ algorithm with Transaction Security.
 [RFC6725]: https://www.rfc-editor.org/rfc/rfc6725.html
 [RFC8078]: https://www.rfc-editor.org/rfc/rfc8078.html
 [RFC8080]: https://www.rfc-editor.org/rfc/rfc8080.html
- */
-pub type DNSSecAlgorithm = u8;
+*/
+#[derive(Debug, PartialEq, Eq)]
+pub struct DNSSecAlgorithm(u8);
 
-/// RSA/MD5
-///
-/// ref: https://www.rfc-editor.org/rfc/rfc2537.html
-pub const DNSSEC_ALGORITHM1: DNSSecAlgorithm = 1;
-pub trait DNSSecAlgorithmEncode {
-    fn encode(&self, src: &[u8]) -> Vec<u8>;
-}
+impl DNSSecAlgorithm {
+    pub fn new(algo: u8) -> Self {
+        Self { 0: algo }
+    }
 
-impl DNSSecAlgorithmEncode for DNSSecAlgorithm {
-    fn encode(&self, src: &[u8]) -> Vec<u8> {
-        match *self {
+    pub fn algo(&self) -> u8 {
+        self.0
+    }
+
+    pub fn sign(&self, src: &[u8]) -> Vec<u8> {
+        match self.0 {
             DNSSEC_ALGORITHM1 => todo!(),
             _ => todo!(),
         }
     }
 }
+
+/// RSA/MD5
+///
+/// ref: https://www.rfc-editor.org/rfc/rfc2537.html
+pub const DNSSEC_ALGORITHM1: u8 = 1;
+
 /**
 # Digest Algorithms
 ## Registration Procedure(s)
@@ -105,14 +114,15 @@ RFC Required
 [RFC6605]: https://www.rfc-editor.org/rfc/rfc6605.html
 [RFC9157]: https://www.rfc-editor.org/rfc/rfc9157.html
  */
-pub type DigestAlgorithm = u8;
+#[derive(Debug, PartialEq, Eq)]
+pub struct DigestAlgorithm(u8);
 
-pub trait DigestAlgorithmEncode {
-    fn encode(&self, src: &[u8]) -> Vec<u8>;
-}
+impl DigestAlgorithm {
+    pub fn new(algo: u8) -> Self {
+        Self { 0: algo }
+    }
 
-impl DigestAlgorithmEncode for DigestAlgorithm {
-    fn encode(&self, src: &[u8]) -> Vec<u8> {
-        vec![]
+    pub fn algo(&self) -> u8 {
+        self.0
     }
 }

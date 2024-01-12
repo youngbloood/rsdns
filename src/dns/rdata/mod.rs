@@ -34,7 +34,8 @@ pub mod wks;
 
 use self::{
     a::A, cname::CName, hinfo::HInfo, mb::MB, md::MD, mf::MF, mg::MG, minfo::MInfo, mr::MR, mx::MX,
-    ns::NS, null::Null, opt::OPT, ptr::PTR, soa::SOA, tsig::TSig, txt::TXT, wks::WKS,
+    ns::NS, null::Null, opt::OPT, ptr::PTR, sec::dnskey::DNSKEY, soa::SOA, tsig::TSig, txt::TXT,
+    wks::WKS,
 };
 use super::{
     compress_list::CompressList, labels::Labels, Type, TYPE_A, TYPE_CNAME, TYPE_HINFO, TYPE_MB,
@@ -91,6 +92,7 @@ pub enum RDataType {
     WKS(WKS),
     TSig(TSig),
     OPT(OPT),
+    DNSKEY(DNSKEY),
 }
 
 impl RDataType {
