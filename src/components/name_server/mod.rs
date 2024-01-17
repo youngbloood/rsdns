@@ -31,8 +31,8 @@
 mod server;
 mod zones;
 
-use crate::dns::{Question, RcRf, ResourceRecord};
+use crate::dns::{Question, RcRf, RR};
 
 pub trait NameServerOperation {
-    fn find(&mut self, ques: &Question) -> Option<RcRf<ResourceRecord>>;
+    fn find(&mut self, ques: &Question) -> Option<RcRf<RR>>;
 }

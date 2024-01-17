@@ -1,7 +1,7 @@
 use super::{
     compress_list::CompressList,
     labels::Labels,
-    pseudo_rr::PseudoRR,
+    meta_rr::MetaRR,
     rdata::{encode_domain_name_wrap, RDataOperation, RDataType},
     Class, RcRf, Type, VecRcRf, TYPE_OPT,
 };
@@ -35,7 +35,7 @@ use anyhow::{anyhow, Error};
 ///     +--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+--+
 /// ```
 #[derive(Debug, PartialEq, Eq)]
-pub struct ResourceRecord {
+pub struct RR {
     all_length: usize,
 
     /// a domain name to which this resource record pertains.
@@ -77,7 +77,7 @@ pub struct ResourceRecord {
     rdata: RDataType,
 }
 
-impl ResourceRecord {
+impl RR {
     pub fn new() -> Self {
         Self {
             name: "".to_string(),
@@ -187,6 +187,10 @@ impl ResourceRecord {
         &self.rdata
     }
 
+    pub fn rdata_mut(&mut self) -> &mut RDataType {
+        &mut self.rdata
+    }
+
     pub fn with_rdata(&mut self, resource: RDataType) -> &mut Self {
         self.rdata = resource;
         return self;
@@ -225,12 +229,12 @@ impl ResourceRecord {
         Ok(())
     }
 
-    pub fn convert_pseudo(&mut self) -> Result<PseudoRR, Error> {
+    pub fn convert_pseudo(&mut self) -> Result<MetaRR, Error> {
         if self.typ != TYPE_OPT {
             return Err(anyhow!("not pseudo rr"));
         }
         match &self.rdata {
-            RDataType::OPT(_) => Ok(PseudoRR::from(self)),
+            RDataType::OPT(_) => Ok(MetaRR::from(self)),
             _ => Err(anyhow!("not pseudo rr")),
         }
     }
@@ -238,7 +242,7 @@ impl ResourceRecord {
 
 /// RRs, RR sets
 #[derive(Debug)]
-pub struct RRs(pub VecRcRf<ResourceRecord>);
+pub struct RRs(pub VecRcRf<RR>);
 
 impl RRs {
     pub fn new() -> Self {
@@ -249,7 +253,7 @@ impl RRs {
         return self.0.len();
     }
 
-    pub fn extend(&mut self, rr: RcRf<ResourceRecord>) {
+    pub fn extend(&mut self, rr: RcRf<RR>) {
         self.0.push(rr);
     }
 
@@ -322,7 +326,7 @@ mod tests {
     use super::*;
     #[test]
     pub fn test_rr_with_name() {
-        let mut rr = ResourceRecord::new();
+        let mut rr = RR::new();
         rr.with_name("google.com");
         assert_eq!(&"google.com", &rr.name.as_str());
 
@@ -332,7 +336,7 @@ mod tests {
 
     #[test]
     pub fn test_rr_with_typ() {
-        let mut rr = ResourceRecord::new();
+        let mut rr = RR::new();
         rr.with_type(1);
         assert_eq!(1, rr.typ);
 
@@ -342,7 +346,7 @@ mod tests {
 
     #[test]
     pub fn test_rr_with_class() {
-        let mut rr = ResourceRecord::new();
+        let mut rr = RR::new();
         rr.with_class(1);
         assert_eq!(1, rr.class);
 
@@ -352,7 +356,7 @@ mod tests {
 
     #[test]
     pub fn test_rr_with_ttl() {
-        let mut rr = ResourceRecord::new();
+        let mut rr = RR::new();
         rr.with_ttl(1);
         assert_eq!(1, rr.ttl);
 
@@ -385,8 +389,8 @@ mod tests {
 
     #[test]
     pub fn test_rr_is_equal() {
-        let new_rr = |name, typ, class, ttl, rdlen| {
-            let mut rr = ResourceRecord::new();
+        let new_rr = |name, typ, class, ttl, _rdlen| {
+            let mut rr = RR::new();
             rr.with_name(name)
                 .with_type(typ)
                 .with_class(class)

@@ -99,7 +99,7 @@ XX.LCS.MIT.EDU.  All of the leaves are also domains.
 
 */
 
-use crate::dns::{Class, RcRf, ResourceRecord, VecRcRf};
+use crate::dns::{Class, RcRf, VecRcRf, RR};
 use std::{cell::RefCell, rc::Rc};
 
 pub type ClassDomainTreeUnion = (Class, RcRf<DomainTree>);
@@ -108,7 +108,7 @@ pub type ClassDomainTreeUnion = (Class, RcRf<DomainTree>);
 pub struct DomainTree {
     owner: String,
     leaves: VecRcRf<DomainTree>,
-    rr: Option<RcRf<ResourceRecord>>,
+    rr: Option<RcRf<RR>>,
 }
 
 impl DomainTree {
@@ -170,7 +170,7 @@ impl DomainTree {
         }
     }
 
-    pub fn set_rr(&mut self, domain: &str, rr: RcRf<ResourceRecord>) {
+    pub fn set_rr(&mut self, domain: &str, rr: RcRf<RR>) {
         let _rr = Rc::clone(&rr);
         if !domain.contains(".") {
             match self
@@ -215,7 +215,7 @@ impl DomainTree {
         }
     }
 
-    pub fn get_rr(&self, domain: &str) -> Option<RcRf<ResourceRecord>> {
+    pub fn get_rr(&self, domain: &str) -> Option<RcRf<RR>> {
         if !domain.contains(".") {
             match self
                 .leaves
@@ -265,7 +265,7 @@ impl DomainTree {
 mod tests {
     use std::{cell::RefCell, rc::Rc};
 
-    use crate::dns::ResourceRecord;
+    use crate::dns::RR;
 
     use super::DomainTree;
 
@@ -284,7 +284,7 @@ mod tests {
         tree.push("baidu.com");
         println!("tree = {:?}", tree);
 
-        let mut rr = ResourceRecord::new();
+        let mut rr = RR::new();
         rr.with_name("baidu.com")
             .with_class(11)
             .with_type(12)
@@ -304,7 +304,7 @@ mod tests {
         let mut tree = DomainTree::new();
         tree.push("baidu.com");
 
-        let mut rr = ResourceRecord::new();
+        let mut rr = RR::new();
         rr.with_name("baidu.com")
             .with_class(11)
             .with_type(12)

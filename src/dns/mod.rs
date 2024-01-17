@@ -2,7 +2,7 @@ mod compress_list;
 pub mod dns;
 pub mod header;
 mod labels;
-mod pseudo_rr;
+pub mod meta_rr;
 pub mod question;
 pub mod rdata;
 mod rr;
@@ -10,7 +10,7 @@ mod rr;
 pub use dns::DNS;
 pub use header::Header;
 pub use question::Question;
-pub use rr::ResourceRecord;
+pub use rr::RR;
 use std::{cell::RefCell, rc::Rc};
 
 pub type RcRf<T> = Rc<RefCell<T>>;

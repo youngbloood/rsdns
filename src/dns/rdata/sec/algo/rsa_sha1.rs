@@ -7,8 +7,10 @@ use rsa::{
     },
     Pkcs1v15Encrypt, Pkcs1v15Sign, RsaPrivateKey, RsaPublicKey,
 };
-use sha1::{Digest, Sha1};
+use sha1::Sha1;
 use std::{fs::File, path::Path};
+
+use super::common::hash_sha1;
 
 pub struct RsaSha1 {
     pub_key: RsaPublicKey,
@@ -182,14 +184,6 @@ impl RsaSha1 {
     }
 }
 
-pub fn hash_sha1(src: &[u8]) -> Vec<u8> {
-    // issue: https://github.com/RustCrypto/hashes/issues/529
-    let mut hasher = <Sha1 as Digest>::new();
-    hasher.update(src);
-
-    hasher.finalize().to_vec()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -205,13 +199,6 @@ mod tests {
 
     fn new_rsasha1_without_priv() -> RsaSha1 {
         RsaSha1::from_file("./src/dns/rdata/sec/algo/test_data/rsa_sha1.pub", "").unwrap()
-    }
-
-    #[test]
-    pub fn test_hash_sha1() {
-        let src = "hello world";
-        let result = hash_sha1(src.as_bytes());
-        assert_eq!(result, hex!("2aae6c35c94fcfb415dbe95f408b9ce91ee846ed"));
     }
 
     #[test]

@@ -29,6 +29,10 @@ use std::net::Ipv4Addr;
 pub struct A(pub Ipv4Addr);
 
 impl A {
+    pub fn new(ipv4: Ipv4Addr) -> Self {
+        Self { 0: ipv4 }
+    }
+
     pub fn from(raw: &[u8], rdata: &[u8]) -> Result<Self, Error> {
         let mut a = Self {
             0: Ipv4Addr::new(127, 0, 0, 0),

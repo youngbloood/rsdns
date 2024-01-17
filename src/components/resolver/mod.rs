@@ -49,7 +49,7 @@ mod forward;
 mod resolver;
 
 use crate::{
-    dns::{Question, ResourceRecord},
+    dns::{Question, RR},
     DNS,
 };
 use anyhow::Error;
@@ -66,7 +66,7 @@ pub trait NameServersQuery {
  * find rr by question in a NameServer
  */
 pub trait NameServerQuery {
-    fn find(&self, ques: &Question) -> Option<Rc<RefCell<ResourceRecord>>>;
+    fn find(&self, ques: &Question) -> Option<Rc<RefCell<RR>>>;
 }
 
 /**

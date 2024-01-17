@@ -1,3 +1,5 @@
+pub mod common;
+pub mod dsa_sha1;
 pub mod rsa_sha1;
 
 /**

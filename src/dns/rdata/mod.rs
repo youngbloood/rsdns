@@ -122,6 +122,14 @@ impl RDataType {
             _ => bail!(ERR_RDATE_TYPE),
         }
     }
+
+    pub fn as_str(&self) -> &str {
+        return "";
+    }
+
+    pub fn update(&mut self, rdate: &RDataType) -> Result<(), Error> {
+        Ok(())
+    }
 }
 
 impl RDataOperation for RDataType {

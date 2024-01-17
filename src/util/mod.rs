@@ -1,5 +1,3 @@
-pub mod bit_map;
-
 use base64::{
     alphabet::STANDARD,
     engine::{GeneralPurpose, GeneralPurposeConfig},

@@ -1,7 +1,7 @@
 use super::header::Header;
 use super::question::Questions;
 use super::rr::RRs;
-use super::{Class, Question, RcRf, ResourceRecord, Type};
+use super::{Class, Question, RcRf, Type, RR};
 use crate::dns::compress_list::CompressList;
 use anyhow::Error;
 use std::cell::RefCell;
@@ -126,19 +126,19 @@ impl DNS {
         }
         // parse anwer
         for _i in 0..dns.head.ancount() {
-            let rr = ResourceRecord::from(&raw, &mut offset, &mut dns._is_compressed)?;
+            let rr = RR::from(&raw, &mut offset, &mut dns._is_compressed)?;
             dns.answers.0.push(Rc::new(RefCell::new(rr)));
         }
 
         // parse authority
         for _i in 0..dns.head.nscount() {
-            let rr = ResourceRecord::from(&raw, &mut offset, &mut dns._is_compressed)?;
+            let rr = RR::from(&raw, &mut offset, &mut dns._is_compressed)?;
             dns.authority.0.push(Rc::new(RefCell::new(rr)));
         }
 
         // parse additional
         for _i in 0..dns.head.arcount() {
-            let rr = ResourceRecord::from(&raw, &mut offset, &mut dns._is_compressed)?;
+            let rr = RR::from(&raw, &mut offset, &mut dns._is_compressed)?;
             dns.additional.0.push(Rc::new(RefCell::new(rr)));
         }
 
@@ -167,15 +167,15 @@ impl DNS {
         self.ques.push(ques);
     }
 
-    pub fn with_answer(&mut self, rr: RcRf<ResourceRecord>) {
+    pub fn with_answer(&mut self, rr: RcRf<RR>) {
         self.answers.extend(rr);
     }
 
-    pub fn with_authority(&mut self, ns: RcRf<ResourceRecord>) {
+    pub fn with_authority(&mut self, ns: RcRf<RR>) {
         self.authority.extend(ns);
     }
 
-    pub fn with_additional(&mut self, ar: RcRf<ResourceRecord>) {
+    pub fn with_additional(&mut self, ar: RcRf<RR>) {
         self.additional.extend(ar);
     }
 
