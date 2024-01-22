@@ -102,8 +102,6 @@ XX.LCS.MIT.EDU.  All of the leaves are also domains.
 use crate::dns::{Class, RcRf, VecRcRf, RR};
 use std::{cell::RefCell, rc::Rc};
 
-pub type ClassDomainTreeUnion = (Class, RcRf<DomainTree>);
-
 #[derive(Debug)]
 pub struct DomainTree {
     owner: String,
@@ -258,6 +256,21 @@ impl DomainTree {
             }
         }
         None
+    }
+
+    pub fn get_all_rrs(&self) -> VecRcRf<RR> {
+        let mut list = vec![];
+        for leaf in &self.leaves {
+            let leaf_rrs = leaf.clone().borrow().get_all_rrs();
+            if leaf_rrs.len() == 0 {
+                continue;
+            }
+            list.extend(leaf.clone().borrow().get_all_rrs());
+        }
+        if self.rr.is_some() {
+            return vec![self.rr.as_ref().unwrap().clone()];
+        }
+        list
     }
 }
 

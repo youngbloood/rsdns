@@ -93,6 +93,15 @@ impl Question {
         return Ok(ques);
     }
 
+    pub fn clone(&self) -> Self {
+        let mut ques = Question::new();
+        ques.length = self.length;
+        ques.qname = self.qname.clone();
+        ques.qtype = self.qtype;
+        ques.qclass = self.qclass;
+        ques
+    }
+
     pub fn qname(&self) -> &Labels {
         return &self.qname;
     }

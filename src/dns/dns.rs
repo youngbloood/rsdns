@@ -150,7 +150,11 @@ impl DNS {
         return &mut self.head;
     }
 
-    pub fn ques(&mut self) -> &mut Questions {
+    pub fn ques(&self) -> &Questions {
+        return &self.ques;
+    }
+
+    pub fn ques_mut(&mut self) -> &mut Questions {
         return &mut self.ques;
     }
 

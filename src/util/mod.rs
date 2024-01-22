@@ -1,3 +1,9 @@
+use std::{
+    ffi::OsStr,
+    fs::{self, DirEntry},
+};
+
+use anyhow::Error;
 use base64::{
     alphabet::STANDARD,
     engine::{GeneralPurpose, GeneralPurposeConfig},
@@ -26,6 +32,51 @@ pub fn is_compressed_wrap(raw: &[u8]) -> (usize, bool) {
     return is_compressed(raw[..2].try_into().expect("get the compressed pointer"));
 }
 
+pub fn encode_name(name: &str) -> &str {
+    if name.len() == 0 {
+        return "NONE";
+    }
+    return name;
+}
+
+pub fn decode_name(src: &str) -> &str {
+    if src == "NONE" {
+        return "";
+    }
+    return src;
+}
+
+pub fn visit_dirs(dir: &str) -> Result<Vec<String>, Error> {
+    let mut list = vec![];
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            let sub_dir = path.to_str().unwrap();
+            list.extend(visit_dirs(sub_dir)?);
+        } else {
+            list.push(path.to_str().unwrap().to_string())
+        }
+    }
+
+    Ok(list)
+}
+
+pub fn visit_dirs_with_cb(dir: &str, cb: &dyn Fn(&DirEntry)) -> Result<(), Error> {
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_dir() {
+            let sub_dir = path.to_str().unwrap();
+            visit_dirs_with_cb(sub_dir, cb)?;
+        } else {
+            cb(&entry)
+        }
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -51,5 +102,19 @@ mod tests {
             .unwrap();
         let s = unsafe { String::from_utf8_unchecked(out) };
         assert_eq!("!@#$%^&*()_+ []|';,./?><:\"~`", s);
+    }
+
+    #[test]
+    fn test_visit_dirs() {
+        let filenames = visit_dirs("./").unwrap();
+        println!("filenames = {:?}", filenames);
+    }
+
+    #[test]
+    fn test_visit_dirs_with_cb() {
+        let result = visit_dirs_with_cb("./", &|et: &DirEntry| {
+            println!("path = {:?}", et.path().to_str().unwrap())
+        });
+        assert_eq!(true, result.is_ok());
     }
 }

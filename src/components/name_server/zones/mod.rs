@@ -16,7 +16,7 @@ pub struct DefaultZones;
 
 impl DefaultZones {
     pub fn new() -> Self {
-        Self
+        Self {}
     }
 }
 

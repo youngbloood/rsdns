@@ -388,7 +388,7 @@ mod tests {
                             panic!("{}", e);
                         }
                         Ok(mut dns) => {
-                            let ques = dns.ques().0.get(0).unwrap();
+                            let ques = dns.ques_mut().0.get(0).unwrap();
                             let filename = format!(
                                 "./{}/{}/{}_{}",
                                 base_dir,
@@ -404,7 +404,7 @@ mod tests {
                 match query(domain, typ, CLASS_ANY) {
                     Err(e) => panic!("{}", e),
                     Ok(mut dns) => {
-                        let ques = dns.ques().0.get(0).unwrap();
+                        let ques = dns.ques_mut().0.get(0).unwrap();
                         let filename = format!(
                             "./{}/{}/{}_{}",
                             base_dir,
@@ -422,7 +422,7 @@ mod tests {
                     match query(domain, typ, class) {
                         Err(e) => panic!("{}", e),
                         Ok(mut dns) => {
-                            let ques = dns.ques().0.get(0).unwrap();
+                            let ques = dns.ques_mut().0.get(0).unwrap();
                             let filename = format!(
                                 "./{}/{}/{}_{}",
                                 base_dir,
@@ -437,7 +437,7 @@ mod tests {
                 match query(domain, typ, CLASS_ANY) {
                     Err(e) => panic!("{}", e),
                     Ok(mut dns) => {
-                        let ques = dns.ques().0.get(0).unwrap();
+                        let ques = dns.ques_mut().0.get(0).unwrap();
                         let filename = format!(
                             "./{}/{}/{}_{}",
                             base_dir,

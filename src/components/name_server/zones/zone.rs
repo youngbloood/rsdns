@@ -1,10 +1,9 @@
-use super::domain_tree::ClassDomainTreeUnion;
-use super::master_file::{DefaultMasterFiles, MasterFileOperation};
-use super::DomainTree;
-use crate::dns::{Question, RcRf, RR};
+use super::master_file::DefaultMasterFiles;
+use crate::dns::question::Questions;
+use crate::dns::{Question, RcRf, VecRcRf, RR};
+use crate::util;
 use anyhow::{Error, Ok};
 use std::collections::HashMap;
-use std::{cell::RefCell, rc::Rc};
 
 /**
 - The definition of zone boundaries.
@@ -17,7 +16,7 @@ use std::{cell::RefCell, rc::Rc};
 */
 
 pub struct Zones {
-    domains: HashMap<String, ClassDomainTreeUnion>,
+    domains: HashMap<String, DefaultMasterFiles>, // domain: MF
 }
 
 impl Zones {
@@ -27,63 +26,31 @@ impl Zones {
         }
     }
 
-    // pub fn from(mut coder: Box<dyn MasterFileOperation>) -> Result<Self, Error> {
-    //     let mut zones = Zones {
-    //         domains: HashMap::new(),
-    //     };
-    //     let filenames = coder.calalog();
-    //     for filename in filenames {
-    //         let (class, mut _rrs) = coder.decode(filename.as_str())?;
-    //         let mut dt = DomainTree::new();
+    pub fn from_dir(dir: &str) -> Result<Self, Error> {
+        let mut zones = Self::new();
 
-    //         let mut rrs = _rrs.into_iter();
-    //         let mut _rr = rrs.next();
-    //         while _rr.is_some() {
-    //             let rr = _rr.unwrap();
-    //             let name = rr.name().to_string();
-    //             dt.push(name.as_str());
-    //             dt.set_rr(name.as_str(), Rc::new(RefCell::new(rr)));
-    //             _rr = rrs.next();
-    //         }
+        let filenames = util::visit_dirs(dir)?;
+        for filename in filenames {
+            let mut mf = DefaultMasterFiles::new(filename.as_str());
+            mf.decode()?;
+            zones.domains.insert(filename, mf);
+        }
 
-    //         zones
-    //             .domains
-    //             .insert(filename, (class, Rc::new(RefCell::new(dt))));
-    //     }
+        Ok(zones)
+    }
 
-    //     return Ok(zones);
-    // }
+    pub fn get_rr(&self, quess: &Questions) -> VecRcRf<RR> {
+        let mut list = vec![];
+        for ques in &quess.0 {
+            let domain = ques.qname().encode_to_str();
 
-    // pub fn parse_zone(&mut self) -> Result<(), Error> {
-    //     let mut coder = DefaultMasterFiles::new("");
-    //     let filenames = coder.calalog();
-    //     for filename in filenames {
-    //         let (class, rrs) = coder.decode(filename.as_str())?;
-    //         let mut dt = DomainTree::new();
-    //         for rr in rrs {
-    //             dt.push(rr.name());
-    //         }
-
-    //         self.domains
-    //             .insert(filename, (class, Rc::new(RefCell::new(dt))));
-    //     }
-
-    //     Ok(())
-    // }
-
-    pub fn get_rr(&self, ques: &Question) -> Option<RcRf<RR>> {
-        let domain = ques.qname().encode_to_str();
-
-        for (_, (class, dt)) in &self.domains {
-            if ques.qclass().ne(class) {
-                continue;
-            }
-            let rr = dt.borrow().get_rr(domain.as_str());
-            if rr.is_some() {
-                return rr;
+            for (_, mf) in &self.domains {
+                if let Some(rr) = mf.query(&domain) {
+                    list.push(rr);
+                }
             }
         }
 
-        None
+        list
     }
 }

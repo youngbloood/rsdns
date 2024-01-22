@@ -21,6 +21,15 @@ impl Labels {
         Ok(labels)
     }
 
+    pub fn clone(&self) -> Self {
+        let mut new_labels = Labels::new();
+        for s in &self.0 {
+            let new_s = s.as_str();
+            new_labels.0.push(new_s.to_string());
+        }
+        new_labels
+    }
+
     pub fn extend(&mut self, labels: Labels) {
         for l in labels.0 {
             self.0.push(l);

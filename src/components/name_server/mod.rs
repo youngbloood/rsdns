@@ -31,8 +31,9 @@
 mod server;
 mod zones;
 
-use crate::dns::{Question, RcRf, RR};
+use self::zones::zone::Zones;
+pub use server::NameServer;
 
 pub trait NameServerOperation {
-    fn find(&mut self, ques: &Question) -> Option<RcRf<RR>>;
+    fn list_zones(&self) -> Vec<Zones>;
 }

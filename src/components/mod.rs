@@ -36,5 +36,5 @@ The DNS has three major components:
     resolver and the user program.
 */
 
-mod name_server;
+pub mod name_server;
 pub mod resolver;
