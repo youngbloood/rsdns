@@ -11,9 +11,10 @@ pub use dns::DNS;
 pub use header::Header;
 pub use question::Question;
 pub use rr::RR;
-use std::{cell::RefCell, rc::Rc};
+use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 pub type RcRf<T> = Rc<RefCell<T>>;
+pub type ArcRf<T> = Arc<RefCell<T>>;
 pub type VecRcRf<T> = Vec<RcRf<T>>;
 
 pub type Type = u16;

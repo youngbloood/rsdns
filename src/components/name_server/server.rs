@@ -1,6 +1,10 @@
 use super::zones::{zone::Zones, DefaultZones, ZonesOperation};
 use crate::{dns::VecRcRf, DNS};
-use std::{cell::RefCell, rc::Rc};
+use anyhow::{Error, Result};
+use bytes::{Bytes, BytesMut};
+use nom::AsBytes;
+use std::{cell::RefCell, fmt::format, io::Cursor, rc::Rc};
+use tokio::{self, io::AsyncReadExt};
 
 /**
   The domain system provides:
@@ -14,6 +18,9 @@ pub struct NameServer {
     port: String,
     zones: VecRcRf<Zones>,
 }
+
+unsafe impl Sync for NameServer {}
+unsafe impl Send for NameServer {}
 
 impl NameServer {
     pub fn new() -> Self {
@@ -44,7 +51,51 @@ impl NameServer {
         return ns;
     }
 
-    pub async fn query(&self, dns_packet: &DNS) -> DNS {
+    // start serve, it will block till the progress quit
+    pub async fn serve(&'static self) -> Result<()> {
+        match self.protocol.as_str() {
+            "udp" => {
+                let port = self.port.as_str();
+                let sock = tokio::net::UdpSocket::bind(format!("0.0.0.0:{}", port))
+                    .await
+                    .expect("bind udp failed");
+                loop {
+                    let mut bts = bytes::BytesMut::new();
+                    let size = sock.recv(bts.as_mut()).await.unwrap();
+                    unsafe { bts.set_len(size) };
+
+                    let dns_query = DNS::from(bts.as_bytes()).expect("parse dns packet err");
+                    tokio::spawn(async move { self.query(dns_query) });
+                }
+            }
+
+            "tcp" => {
+                let port = self.port.as_str();
+                let sock = tokio::net::TcpListener::bind(format!("0.0.0.0:{}", port))
+                    .await
+                    .expect("bind udp failed");
+                loop {
+                    let (tcp_stream, sock_addr) = sock.accept().await.unwrap();
+                    tokio::spawn(async move {
+                        let (mut rh, wh) = tcp_stream.into_split();
+                        let mut buf = Vec::new();
+                        if let Ok(n) = rh.read_to_end(&mut buf).await {
+                            if n == 0 {
+                                // socket closed
+                                return;
+                            }
+                        }
+                        let bts = Bytes::from(buf);
+                        let dns_query = DNS::from(bts.as_bytes()).expect("parse dns packet err");
+                        tokio::spawn(async move { self.query(dns_query) });
+                    });
+                }
+            }
+            _ => todo!(),
+        }
+    }
+
+    pub async fn query(&self, dns_packet: DNS) -> DNS {
         let mut new_dns = DNS::new();
         for ques in &dns_packet.ques().0 {
             new_dns.with_ques(

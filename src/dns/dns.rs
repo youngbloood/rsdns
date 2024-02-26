@@ -38,6 +38,9 @@ pub struct DNS {
     additional: RRs,
 }
 
+unsafe impl Send for DNS {}
+unsafe impl Sync for DNS {}
+
 impl DNS {
     pub fn new() -> Self {
         Self {
